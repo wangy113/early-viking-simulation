@@ -32,6 +32,9 @@ function frame() {
 if (location.hash.includes("sail")) { sail$.target = 1; sail$.amt = 1; setSailLabel(); }
 const m = location.hash.match(/stop=(\d+)/);
 if (location.hash.includes("deck")) { document.getElementById("intro").hidden = true; state.onBoard = true; updateBoardBtn(); camera.position.set(0.6, H.deckY(0.55) + 1.65, 0.55 * SHIP.Lh); lookAtPoint(v3(0, H.deckY(-0.6) + 1.3, -0.7 * SHIP.Lh)); }
+// #cam=x,y,z,lookX,lookY,lookZ places the camera directly (for preview screenshots)
+const camLink = location.hash.match(/cam=([-\d.,]+)/);
+if (camLink) { const n = camLink[1].split(",").map(Number); if (n.length === 6) { document.getElementById("intro").hidden = true; camera.position.set(n[0], n[1], n[2]); lookAtPoint(v3(n[3], n[4], n[5])); } }
 if (location.hash.includes("overview")) { document.getElementById("intro").hidden = true; camera.position.set(17, 11, 17); lookAtPoint(v3(-2, 0.5, 0)); }
 if (m) { document.getElementById("intro").hidden = true; const i = clamp(parseInt(m[1], 10) - 1, 0, STOPS.length - 1); goToStop(i); if (state.flight) { camera.position.copy(state.flight.to.p); state.yaw = state.flight.to.yaw; state.pitch = state.flight.to.pitch; state.flight = null; } }
 window.__ready = true;

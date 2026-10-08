@@ -100,8 +100,8 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 | Repo + hosting | GitHub repo, Pages, custom path | ⏳ in progress | PoC on `main`. The user must set Settings, Pages, Source to GitHub Actions |
 | Code split | split the single file into modules, pin Three.js locally | ✅ done | Vite, three 0.181.2 and fonts bundled, stops.json, style lint, Playwright tests, CI. Scene pixel-matches the PoC |
 | Baked textures | paint textures and atlases once to PNG/WebP and load them | dropped | replaced by CC0 photo-scanned PBR textures (realistic direction) |
-| Realistic look test | ship, beach, sea, sky with PBR, HDRI, shadows, Water | ⬜ not started | key approval gate before converting the rest |
-| 3D people | code-built skinned figures with the 11 task loops | ⬜ not started | |
+| Realistic look test | ship, beach, sea, sky with PBR, HDRI, shadows, Water | ✅ done | approved by the user. M3 finished the whole scene, also approved |
+| 3D people | code-built jointed figures with the 11 task loops | ⏳ in progress | `src/people.js`. Poses reuse the PoC pose math. Painted billboards and the painter are removed |
 | Performance | profile, merge geometry, cap DPR, target 30+ fps on a Chromebook and 60 on a laptop | ⬜ not started | |
 | Mobile/touch | tap-to-walk, pinch, layout of the top bar and panel on phones | ⬜ not started | the top bar wraps on narrow screens and needs a menu |
 | Accessibility audit | WCAG 2.1 AA and QM 8: keyboard path to every stop, focus trap in modals, screen-reader test with NVDA, contrast, captions if audio is added | ⬜ not started | the Text version exists, but focus trapping is not implemented |
@@ -191,3 +191,8 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - Decisions: keep the 12 stops, no audio for now, no course yet (general exploration activity), realistic look replaces watercolour, people are code-built 3D figures, textures are CC0 photo scans.
 - M1 scaffold: Vite, modules under `src/`, bundled Three.js and fonts (no third-party requests), `stops.json`, style lint, Playwright tests and CI. The 3D scene pixel-matched the PoC.
 - Headless screenshots in the cloud container need `--use-gl=angle --use-angle=swiftshader-webgl --enable-unsafe-swiftshader --disable-gpu-rasterization`. Without the last flag the painter takes minutes and the page looks hung.
+
+## 2026-10-08: Realistic scene and 3D people
+- The user approved the realistic look test and the full 12-stop scene.
+- M4: people and animals are jointed 3D figures in `src/people.js` (rigid segments aimed joint to joint, wool, linen and leather materials). They reuse the proof of concept's `pose()` and `walkPose()` data, so the 11 task loops behave the same. The painted billboards, `painter.js`, `figures.js` and `actors.js` are gone.
+- `#cam=x,y,z,lookX,lookY,lookZ` places the camera for preview screenshots.
