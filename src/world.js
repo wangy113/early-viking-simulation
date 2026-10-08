@@ -58,7 +58,9 @@ function groundY(x, z) {
   return 0.042 + R * (1 - nearShip) * awayFromSea + beach + rise;
 }
 const ground = (() => {
-  const g = new THREE.PlaneGeometry(1400, 520, TIER.water ? 420 : 240, TIER.water ? 220 : 130); // lighter terrain on Low g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
+  // lighter terrain on Low
+  const g = new THREE.PlaneGeometry(1400, 520, TIER.water ? 420 : 240, TIER.water ? 220 : 130);
+  g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) p.setY(i, groundY(p.getX(i), p.getZ(i)));
   g.computeVertexNormals();
