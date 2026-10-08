@@ -8,7 +8,6 @@
 </head>
 <body>
 <canvas id="scene" aria-label="3D scene of the Gokstad Viking ship on a beach with people preparing it. Use the Text version button for a full description." role="img"></canvas>
-<canvas id="paper" aria-hidden="true"></canvas>
 <div id="markers" aria-label="Stops in the scene"></div>
 
 <div class="bar">
@@ -84,7 +83,7 @@
   </div>
 </div>
 
-<div id="loader" role="status">Painting the scene&hellip;</div>
+<div id="loader" role="status"><div>Loading the ship&hellip; <span id="loadPct">0%</span></div><div class="loadbar"><span id="loadBar"></span></div></div>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

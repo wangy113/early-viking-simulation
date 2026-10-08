@@ -1,18 +1,37 @@
 import * as THREE from "three";
 
-// ---------------- renderer and world ----------------
+// Quality tier. Automatic selection and a visible Quality button come in the performance milestone.
+const QUALITY = ["low", "medium", "high"].includes(new URLSearchParams(location.search).get("quality")) ? new URLSearchParams(location.search).get("quality") : "high";
+
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.setPixelRatio(Math.min(devicePixelRatio, QUALITY === "low" ? 1 : 1.5));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.9;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0xe9e2cf, 60, 420);
-scene.background = new THREE.Color(0xdfe6e0);
-const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 2000);
-scene.add(new THREE.HemisphereLight(0xfff6e2, 0x8a7a5a, 2.1));
-const sun = new THREE.DirectionalLight(0xfff0d0, 1.6); sun.position.set(-30, 40, 20); scene.add(sun);
-const lam = (map, o = {}) => new THREE.MeshLambertMaterial({ map, ...o });
-const basic = (map, o = {}) => new THREE.MeshBasicMaterial({ map, toneMapped: false, ...o });
+const camera = new THREE.PerspectiveCamera(60, 1, 0.05, 6000);
+
+// The sun. Its direction and the sky light are set from the HDR sky in world.js.
+const sun = new THREE.DirectionalLight(0xfff3e0, 3.2);
+sun.castShadow = true;
+sun.shadow.mapSize.setScalar(QUALITY === "low" ? 1024 : 2048);
+Object.assign(sun.shadow.camera, { left: -26, right: 26, top: 26, bottom: -26, near: 1, far: 140 });
+sun.shadow.bias = -0.0004;
+sun.shadow.normalBias = 0.03;
+scene.add(sun, sun.target);
+
 const solids = []; // meshes that block hotspot markers and catch walk clicks
 
-export { canvas, renderer, scene, camera, sun, lam, basic, solids };
+// Every mesh casts and receives shadows unless told otherwise.
+function add(obj, { cast = true, receive = true, solid = false, parent = scene } = {}) {
+  obj.traverse((o) => { if (o.isMesh) { o.castShadow = cast; o.receiveShadow = receive; } });
+  parent.add(obj);
+  if (solid) obj.traverse((o) => { if (o.isMesh) solids.push(o); });
+  return obj;
+}
+
+export { QUALITY, canvas, renderer, scene, camera, sun, solids, add };

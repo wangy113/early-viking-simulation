@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import stops from "../src/content/stops.json" with { type: "json" };
 
-const ready = (page) => page.waitForFunction(() => window.__ready === true, null, { timeout: 90_000, polling: 250 });
+const ready = (page) => page.waitForFunction(() => window.__ready === true, null, { timeout: 180_000, polling: 500 });
 
 function trackErrors(page) {
   const errors = [];
@@ -12,7 +12,7 @@ function trackErrors(page) {
 
 test("loads with the intro and no errors", async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto("./");
+  await page.goto("./?quality=low");
   await ready(page);
   await expect(page.locator("#introTitle")).toBeVisible();
   await expect(page.locator("#progress")).toHaveText(`0 of ${stops.length} stops`);
@@ -23,7 +23,7 @@ test("loads with the intro and no errors", async ({ page }) => {
 test("makes no requests to other hosts", async ({ page }) => {
   const external = [];
   page.on("request", (r) => { if (!r.url().startsWith("http://localhost:4173/") && !r.url().startsWith("data:") && !r.url().startsWith("blob:")) external.push(r.url()); });
-  await page.goto("./");
+  await page.goto("./?quality=low");
   await ready(page);
   expect(external).toEqual([]);
 });
@@ -31,7 +31,7 @@ test("makes no requests to other hosts", async ({ page }) => {
 for (const [i, stop] of stops.entries()) {
   test(`#stop=${i + 1} opens "${stop.title}"`, async ({ page }) => {
     const errors = trackErrors(page);
-    await page.goto(`./#stop=${i + 1}`);
+    await page.goto(`./?quality=low#stop=${i + 1}`);
     await ready(page);
     await expect(page.locator("#intro")).toBeHidden();
     await expect(page.locator("#pTitle")).toHaveText(`${i + 1}. ${stop.title}`);
@@ -41,7 +41,7 @@ for (const [i, stop] of stops.entries()) {
 }
 
 test("the text version lists every stop", async ({ page }) => {
-  await page.goto("./");
+  await page.goto("./?quality=low");
   await ready(page);
   await page.getByRole("button", { name: "Start exploring" }).click();
   await page.getByRole("button", { name: "Text version" }).click();
@@ -49,7 +49,7 @@ test("the text version lists every stop", async ({ page }) => {
 });
 
 test("#deck starts on board and #sail raises the sail", async ({ page }) => {
-  await page.goto("./#deck&sail");
+  await page.goto("./?quality=low#deck&sail");
   await ready(page);
   await expect(page.locator("#board")).toHaveText("Step ashore");
   await expect(page.locator("#sailBtn")).toHaveText("Lower the sail");

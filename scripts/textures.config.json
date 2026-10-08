@@ -1,0 +1,14 @@
+{
+  "textures": {
+    "hull": "rough_wood",
+    "deck": "weathered_planks",
+    "iron": "rust_coarse_01",
+    "cloth": "hessian_380",
+    "sand": "coast_sand_01",
+    "wetsand": "damp_beach_sand",
+    "grass": "leafy_grass",
+    "rock": "coast_land_rocks_01"
+  },
+  "hdri": "kloofendal_48d_partly_cloudy_puresky",
+  "sizes": [1024, 2048]
+}

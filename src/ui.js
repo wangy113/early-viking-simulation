@@ -1,5 +1,5 @@
 import { canvas, renderer, camera, solids } from "./core.js";
-import { rngFrom, reduceMotion } from "./util.js";
+import { reduceMotion } from "./util.js";
 import { SHIP, H, sail$ } from "./ship.js";
 import { v3 } from "./cast.js";
 import { T, STOPS } from "./stops.js";
@@ -73,14 +73,8 @@ document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => ($(b
 $("start").onclick = () => { $("intro").hidden = true; canvas.focus(); };
 addEventListener("keydown", (e) => { if (e.key === "Escape") { document.querySelectorAll(".modal-back").forEach((m) => (m.hidden = true)); panel.hidden = true; } });
 
-// ---------------- resize and paper overlay ----------------
-function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); paintPaper(w, h); }
-function paintPaper(w, h) {
-  const pc = $("paper"); pc.width = w; pc.height = h; const c = pc.getContext("2d"), R = rngFrom(901);
-  c.fillStyle = "#fff"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < (w * h) / 40; i++) { c.globalAlpha = 0.04 + R() * 0.05; c.fillStyle = R() < 0.5 ? "#8a7a62" : "#b5a382"; c.fillRect(R() * w, R() * h, 1 + R() * 1.4, 1 + R() * 1.4); }
-  c.globalAlpha = 1; const g = c.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.45, w / 2, h / 2, Math.max(w, h) * 0.75); g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(196,165,120,0.4)"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-}
+// ---------------- resize ----------------
+function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener("resize", resize); resize();
 
 export { goToStop, updateMarkers, updateBoardBtn, setSailLabel };

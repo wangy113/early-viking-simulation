@@ -1,71 +1,203 @@
 import * as THREE from "three";
-import { TAU, clamp, lerp } from "./util.js";
-import { ell, paintTex } from "./painter.js";
-import { scene, lam, basic, solids } from "./core.js";
-import { SHIP, H, woodMat } from "./ship.js";
+import { Water } from "three/addons/objects/Water.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import { TAU, clamp, rngFrom } from "./util.js";
+import { QUALITY, renderer, scene, camera, sun, add } from "./core.js";
+import { SHIP, H, woodMat, std } from "./ship.js";
+import { pbr, file, skyBackdrop, skyLight, sunDirection } from "./textures.js";
 
-// ---- landscape ----
-const groundTex = paintTex(1024, 1024, 601, (P, c, w, h) => {
-  c.fillStyle = "#e2cc9c"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 26; i++) P.wash(ell(P.rr(0, w), P.rr(0, h), P.rr(60, 180), P.rr(30, 90), 26, P.rr(0, 3)), P.r() < 0.5 ? "#cdb07c" : "#efdcb4", { alpha: 0.18, edge: 0.1, grain: false, jit: 10 });
-  for (let i = 0; i < 60; i++) { const x = P.rr(10, w - 10), y = P.rr(10, h - 10), r = P.rr(2, 5); P.shape(ell(x, y, r, r * 0.6, 10), "#c9b48f", { alpha: 0.45, pen: { w: 0.6, alpha: 0.3 } }); }
-  c.fillStyle = "#3b2a1a"; for (let i = 0; i < 8000; i++) { c.globalAlpha = P.rr(0.03, 0.07); c.fillRect(P.rr(0, w), P.rr(0, h), 1.5, 1.5); }
-}, [40, 40]);
-const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), lam(groundTex)); ground.rotation.x = -Math.PI / 2; ground.position.z = 380; scene.add(ground);
-const grassTex = paintTex(1024, 1024, 602, (P, c, w, h) => {
-  c.fillStyle = "#9aa463"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 30; i++) P.wash(ell(P.rr(0, w), P.rr(0, h), P.rr(60, 160), P.rr(30, 80), 26, P.rr(0, 3)), P.r() < 0.5 ? "#7f8a4e" : "#b3b877", { alpha: 0.22, edge: 0.1, grain: false, jit: 10 });
-  for (let i = 0; i < 260; i++) { const x = P.rr(10, w - 10), y = P.rr(10, h - 10); for (let j = 0; j < 3; j++) P.pencil([[x + j * 3, y], [x + j * 3 + P.rr(-4, 4), y - P.rr(6, 12)]], { w: 0.8, color: "#5b6a33", alpha: 0.6, passes: 1 }); }
-}, [30, 30]);
-const grassEdge = paintTex(1024, 256, 603, (P, c, w, h) => { const pts = [[0, h]]; for (let x = 0; x <= w; x += 32) pts.push([x, P.rr(10, 90)]); pts.push([w, h]); P.wash(pts, "#9aa463", { alpha: 0.9, edge: 0.4, jit: 6 }); });
-const grass = new THREE.Mesh(new THREE.PlaneGeometry(800, 600), lam(grassTex)); grass.rotation.x = -Math.PI / 2; grass.position.set(0, 0.02, 322); scene.add(grass);
-const ge = new THREE.Mesh(new THREE.PlaneGeometry(800, 12), lam(grassEdge, { transparent: true, depthWrite: false })); ge.rotation.x = -Math.PI / 2; ge.position.set(0, 0.025, 16); ge.material.map.repeat.set(30, 1); ge.material.map.wrapS = THREE.RepeatWrapping; scene.add(ge);
-// rollers under the keel
-for (const u of [-0.55, -0.15, 0.25, 0.6]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 2.4, 10), woodMat); r.rotation.z = Math.PI / 2; r.position.set(0, 0.2 + H.keelY(u) * 0.5, u * SHIP.Lh); scene.add(r); }
-// sea
-const waterTex = paintTex(1024, 1024, 611, (P, c, w, h) => {
-  c.fillStyle = "#7fa2ad"; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 40; i++) P.wash(ell(P.rr(0, w), P.rr(0, h), P.rr(80, 200), P.rr(10, 30), 26), P.r() < 0.5 ? "#6a8f9c" : "#a9c3c6", { alpha: 0.2, edge: 0, grain: false, jit: 8 });
-  for (let i = 0; i < 180; i++) { const x = P.rr(0, w), y = P.rr(0, h); P.pencil([[x, y], [x + 14, y - 4], [x + 28, y]], { w: 1, color: "#eef4f2", alpha: 0.55, passes: 1 }); }
-}, [24, 24]);
-const water = new THREE.Mesh(new THREE.PlaneGeometry(1200, 600), basic(waterTex)); water.rotation.x = -Math.PI / 2; water.position.set(0, 0.06, -316); scene.add(water);
-const foamTex = paintTex(1024, 128, 612, (P, c, w, h) => { for (let x = 0; x < w; x += 40) P.wash(ell(x + 20, h / 2, P.rr(30, 50), P.rr(10, 22), 16), "#f4f1e6", { alpha: 0.5, grain: false, edge: 0.2, jit: 5 }); }, [40, 1]);
-const foam = new THREE.Mesh(new THREE.PlaneGeometry(1200, 3), basic(foamTex, { transparent: true, depthWrite: false })); foam.rotation.x = -Math.PI / 2; foam.position.set(0, 0.08, -16.2); scene.add(foam);
-// sky and fjord mountains
-const skyTex = paintTex(2048, 1024, 621, (P, c, w, h) => {
-  const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, "#9fbfcd"); g.addColorStop(0.6, "#d7e3df"); g.addColorStop(1, "#f1e8d2"); c.fillStyle = g; c.fillRect(0, 0, w, h);
-  for (let i = 0; i < 14; i++) P.wash(ell(P.rr(0, w), P.rr(80, 600), P.rr(120, 280), P.rr(24, 50), 36, 0, 0.12, 7), "#fbf7ee", { alpha: 0.35, edge: 0.25, grain: false, jit: 6 });
-});
-const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16, 0, TAU, 0, Math.PI / 2), basic(skyTex, { side: THREE.BackSide, fog: false })); scene.add(sky);
-function mountainTex(seed, col, colD, peaks) {
-  return paintTex(2048, 512, seed, (P, c, w, h) => {
-    const pts = [[0, h]]; let y = h * 0.5;
-    for (let x = 0; x <= w; x += 32) { let pk = 0; for (const p of peaks) pk = Math.max(pk, Math.exp(-Math.pow((x - w * p) / (w * 0.07), 2))); y = clamp(y + P.rr(-22, 22), h * 0.3, h * 0.7); pts.push([x, lerp(y, h * 0.05, pk)]); }
-    pts.push([w, h]); P.shape(pts, col, { alpha: 0.55, jit: 4, pen: { w: 1.4, alpha: 0.5 } });
-    for (let i = 0; i < 20; i++) { const x = P.rr(0, w); P.wash([[x, h * 0.25], [x + P.rr(40, 120), h], [x - P.rr(20, 80), h]], colD, { alpha: 0.2, grain: false, edge: 0.1, jit: 8 }); }
-    for (let i = 0; i < 90; i++) { const x = P.rr(0, w), yy = P.rr(h * 0.6, h * 0.95); P.wash([[x, yy - 26], [x + 9, yy], [x - 9, yy]], "#4f6046", { alpha: 0.5, grain: false, edge: 0 }); }
-  });
-}
-for (const [x, z, w, hgt, seed, col, colD, pk] of [[-230, -330, 700, 150, 631, "#8f9a92", "#6f7c78", [0.3, 0.7]], [260, -360, 760, 170, 632, "#97a09a", "#77827f", [0.2, 0.55]], [0, -520, 1200, 160, 633, "#b6bdb9", "#9aa3a2", [0.4, 0.75]]]) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, hgt), basic(mountainTex(seed, col, colD, pk), { transparent: true, fog: false, depthWrite: false })); m.position.set(x, hgt / 2 - 6, z); scene.add(m);
-}
-// tent of the camp (parts of a tent were found in the mound)
+const SEA_Y = 0.06, SHORE_Z = -16;
+
+// ---------------- sky, sky light and sun ----------------
+const sunDir = sunDirection();
 {
-  const tTex = paintTex(512, 512, 641, (P, c, w, h) => { P.wash([[0, 0], [w, 0], [w, h], [0, h]], "#d8c8a0", { alpha: 0.85, edge: 0 }); for (let x = 0; x < w; x += 64) P.wash([[x, 0], [x + 24, 0], [x + 24, h], [x, h]], "#b9a477", { alpha: 0.35, grain: false }); });
-  const tent = new THREE.Group(), len = 5, half = 1.6, ht = 2.4;
-  for (const sd of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(len, Math.hypot(half, ht)), lam(tTex, { side: THREE.DoubleSide })); m.position.set(sd * half / 2, ht / 2, 0); m.rotation.y = Math.PI / 2; m.rotation.x = 0; m.rotateX(sd * -Math.atan2(half, ht)); tent.add(m); }
-  const gable = new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)]);
-  const gm = new THREE.Mesh(new THREE.ShapeGeometry(gable), lam(tTex, { color: 0xbfae88, side: THREE.DoubleSide })); gm.position.z = len / 2 - 0.01; tent.add(gm);
-  const door = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-0.5, 0), new THREE.Vector2(0.5, 0), new THREE.Vector2(0, 1.5)])), basic(null, { color: 0x3a2c22 })); door.position.z = len / 2; tent.add(door);
-  const gb = new THREE.Mesh(new THREE.ShapeGeometry(gable), lam(tTex, { color: 0xbfae88, side: THREE.DoubleSide })); gb.position.z = -len / 2; tent.add(gb);
-  for (const z of [len / 2 + 0.05, -len / 2 - 0.05]) for (const sd of [1, -1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.1, 0.08), woodMat); b.position.set(sd * 0.55, 1.35, z); b.rotation.z = sd * 0.42; tent.add(b); }
-  tent.position.set(-11.5, 0, 7); tent.rotation.y = 0.5; scene.add(tent); solids.push(...tent.children);
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromEquirectangular(skyLight()).texture;
+  scene.environmentIntensity = 0.9;
+  pmrem.dispose();
+  sun.position.copy(sunDir).multiplyScalar(60);
 }
-// smoke from the cook fire
-const puffTex = [0, 1, 2].map((j) => paintTex(256, 256, 650 + j, (P, c, w) => { for (let i = 0; i < 4; i++) P.wash(ell(w / 2 + P.rr(-25, 25), w / 2 + P.rr(-25, 25), P.rr(60, 100), P.rr(50, 90), 28, 0, 0.1, 5), i % 2 ? "#a7adb1" : "#d4d6d4", { alpha: 0.3, edge: 0.3, grain: false, jit: 8 }); }));
-const smoke = []; for (let i = 0; i < 10; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex[i % 3], transparent: true, depthWrite: false })); scene.add(s); smoke.push(s); }
-// gulls
-const gullTex = [0, 1].map((j) => paintTex(128, 64, 660 + j, (P) => P.pencil([[6, j ? 18 : 46], [34, 36], [64, 42], [94, 36], [122, j ? 18 : 46]], { w: 4, color: "#4a4440" })));
-const gulls = []; for (let i = 0; i < 6; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: gullTex[0], transparent: true, depthWrite: false, fog: false })); s.scale.set(1.2, 0.6, 1); scene.add(s); gulls.push(s); }
+// The visible sky is a sphere that follows the camera and samples the sky photo
+// with the same equirectangular mapping three.js uses for the light, so they line up.
+const sky = new THREE.Mesh(new THREE.SphereGeometry(3000, 48, 24), new THREE.ShaderMaterial({
+  uniforms: { map: { value: skyBackdrop() } },
+  vertexShader: "varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: `uniform sampler2D map; varying vec3 vDir;
+    void main() {
+      vec3 d = normalize(vDir);
+      vec2 uv = vec2(atan(d.z, d.x) * 0.15915494 + 0.5, asin(clamp(d.y, -1.0, 1.0)) * 0.31830989 + 0.5);
+      gl_FragColor = texture2D(map, uv);
+      #include <colorspace_fragment>
+    }`,
+  side: THREE.BackSide, depthWrite: false, toneMapped: false,
+}));
+sky.renderOrder = -10; sky.frustumCulled = false;
+scene.add(sky);
 
-export { ground, grass, waterTex, foamTex, foam, smoke, gulls, gullTex };
+// Haze toward the horizon, matched to the sky just above it.
+function horizonColor() {
+  const img = skyBackdrop().image, c = document.createElement("canvas"); c.width = 64; c.height = 32;
+  const x = c.getContext("2d"); x.drawImage(img, 0, 0, 64, 32);
+  const d = x.getImageData(0, 14, 64, 1).data; let r = 0, g = 0, b = 0;
+  for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+  const n = d.length / 4; return new THREE.Color().setRGB(r / n / 255, g / n / 255, b / n / 255, THREE.SRGBColorSpace);
+}
+scene.fog = new THREE.Fog(horizonColor(), 120, 1400);
+
+// ---------------- beach and land ----------------
+// Height of the ground. Flat under the ship and camp, sloping into the sea past the shoreline.
+function shoreZ(x) { return SHORE_Z + 3.2 * Math.sin(x * 0.018 + 1.3) * Math.min(1, Math.abs(x) / 25) + 0.9 * Math.sin(x * 0.07) + 0.35 * Math.sin(x * 0.23 + 2); }
+function groundY(x, z) {
+  const R = 0.08 * (Math.sin(x * 0.21 + z * 0.13) * Math.sin(z * 0.17 - x * 0.07)) + 0.03 * Math.sin(x * 0.9) * Math.sin(z * 0.8);
+  const nearShip = Math.max(0, 1 - Math.max(Math.abs(x) / 14, Math.abs(z) / 16));
+  const awayFromSea = THREE.MathUtils.smoothstep(z, SHORE_Z + 1, SHORE_Z + 7);
+  const toSea = z - shoreZ(x); // meters inland from the waterline
+  const beach = toSea < 0.6 ? (toSea - 0.6) * 0.07 : 0; // the beach dips under the water at the waterline
+  const inland = Math.max(0, z - 28);
+  const rise = inland > 0 ? Math.min(9, inland * 0.06) + Math.max(0, Math.sin(x * 0.021 + 0.7) * Math.sin(z * 0.017)) * inland * 0.08 : 0;
+  return SEA_Y + 0.042 + R * (1 - nearShip) * awayFromSea + beach + rise;
+}
+const ground = (() => {
+  const g = new THREE.PlaneGeometry(1400, 520, 420, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, groundY(p.getX(i), p.getZ(i)));
+  g.computeVertexNormals();
+  const T = 3.0; // meters per sand tile
+  const sand = pbr("sand"), wet = pbr("wetsand"), grass = pbr("grass");
+  const mat = std({ ...sand, color: 0xfff4e6 });
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.wetMap = { value: wet.map }; sh.uniforms.grassMap = { value: grass.map }; sh.uniforms.wetArm = { value: wet.roughnessMap }; sh.uniforms.grassArm = { value: grass.roughnessMap };
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vWorld;").replace("#include <worldpos_vertex>", "#include <worldpos_vertex>\nvWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+    sh.fragmentShader = sh.fragmentShader
+      .replace("#include <common>", `#include <common>
+        varying vec3 vWorld; uniform sampler2D wetMap, grassMap, wetArm, grassArm;
+        float hsh(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+        float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f); return mix(mix(hsh(i), hsh(i + vec2(1, 0)), f.x), mix(hsh(i + vec2(0, 1)), hsh(i + vec2(1, 1)), f.x), f.y); }
+        float wetW() { return 1.0 - smoothstep(${SEA_Y.toFixed(3)} + 0.04, ${SEA_Y.toFixed(3)} + 0.22, vWorld.y + (vnoise(vWorld.xz * 0.15) - 0.5) * 0.08); }
+        float grassW() { return smoothstep(15.0, 19.0, vWorld.z + (vnoise(vWorld.xz * 0.12) - 0.5) * 7.0 + (vnoise(vWorld.xz * 0.6) - 0.5) * 1.5); }`)
+      .replace("#include <map_fragment>", `#include <map_fragment>
+        vec2 wuv = vWorld.xz / ${T.toFixed(1)};
+        diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(wetMap, wuv * 0.9).rgb * 0.62, wetW());
+        diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(grassMap, wuv * 0.8).rgb, grassW());`)
+      .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
+        roughnessFactor = mix(roughnessFactor, texture2D(wetArm, vWorld.xz / ${T.toFixed(1)} * 0.9).g * 0.35, wetW());
+        roughnessFactor = mix(roughnessFactor, texture2D(grassArm, vWorld.xz / ${T.toFixed(1)} * 0.8).g, grassW());`);
+  };
+  // the material samples by world position, so the plane's own UVs repeat at the same scale
+  for (const t of [mat.map, mat.normalMap, mat.roughnessMap]) t.repeat.set(1400 / T, 520 / T);
+  const m = new THREE.Mesh(g, mat);
+  m.receiveShadow = true; scene.add(m);
+  return m;
+})();
+const grass = ground;
+
+// rollers under the keel
+{
+  const rollers = [];
+  for (const u of [-0.55, -0.15, 0.25, 0.6]) rollers.push(new THREE.CylinderGeometry(0.2, 0.2, 2.4, 14).rotateZ(Math.PI / 2).translate(0, 0.2 + H.keelY(u) * 0.5, u * SHIP.Lh));
+  add(new THREE.Mesh(mergeGeometries(rollers), woodMat));
+}
+
+// ---------------- sea ----------------
+const water = new Water(new THREE.PlaneGeometry(6000, 3000), {
+  textureWidth: QUALITY === "low" ? 256 : 1024, textureHeight: QUALITY === "low" ? 256 : 1024,
+  waterNormals: file("tex/waternormals.jpg", { repeat: [1, 1] }),
+  sunDirection: sunDir.clone(), sunColor: 0xfff3e0, waterColor: 0x0a2f3c,
+  distortionScale: 2.2, fog: true, alpha: 1.0,
+});
+water.rotation.x = -Math.PI / 2; water.position.set(0, SEA_Y, SHORE_Z + 3 - 1500); // ends just under the beach
+water.material.uniforms.size.value = 6;
+// Water reflects about 4 percent of light head-on. The addon uses 30 percent, which turns the sea grey.
+water.material.fragmentShader = water.material.fragmentShader.replace("float rf0 = 0.3;", "float rf0 = 0.04;").replace("reflectionSample * 0.9", "reflectionSample * 0.48");
+scene.add(water);
+
+// foam along the waterline, a strip that follows the shore and drifts in and out
+const foamTex = (() => {
+  const c = document.createElement("canvas"); c.width = 512; c.height = 64; const x = c.getContext("2d"), R = rngFrom(612);
+  for (let i = 0; i < 900; i++) { const px = R() * 512, py = 18 + R() * 30, r = 1 + R() * 5; x.fillStyle = `rgba(255,255,255,${0.12 + R() * 0.35})`; x.beginPath(); x.ellipse(px, py, r * 2.2, r, 0, 0, TAU); x.fill(); }
+  const fade = x.createLinearGradient(0, 0, 0, 64); fade.addColorStop(0, "rgba(0,0,0,1)"); fade.addColorStop(0.35, "rgba(0,0,0,0)"); fade.addColorStop(0.8, "rgba(0,0,0,0)"); fade.addColorStop(1, "rgba(0,0,0,1)");
+  x.globalCompositeOperation = "destination-out"; x.fillStyle = fade; x.fillRect(0, 0, 512, 64);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = THREE.RepeatWrapping; t.repeat.set(60, 1); return t;
+})();
+const foam = (() => {
+  const n = 600, pos = [], uv = [], idx = [];
+  for (let i = 0; i <= n; i++) { const x = -300 + (600 * i) / n, z = shoreZ(x); pos.push(x, SEA_Y + 0.012, z - 1.6, x, SEA_Y + 0.012, z + 0.9); uv.push(i / n, 0, i / n, 1); }
+  for (let i = 0; i < n; i++) { const q = i * 2; idx.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: foamTex, transparent: true, depthWrite: false, roughness: 0.9, side: THREE.DoubleSide }));
+  m.renderOrder = 1; scene.add(m); return m;
+})();
+
+// ---------------- wooded hills across the water ----------------
+{
+  const mat = std({ ...pbr("rock", { repeat: [1, 1] }), vertexColors: true });
+  for (const t of [mat.map, mat.normalMap, mat.roughnessMap]) t.repeat.set(60, 14);
+  const fbm = (R) => { const ph = Array.from({ length: 12 }, () => R() * 100); return (x, z) => { let v = 0, a = 1, f = 1, n = 0; for (let o = 0; o < 6; o++) { v += a * Math.sin(x * 0.004 * f + ph[o]) * Math.sin(z * 0.006 * f + ph[o + 6]) ; n += a; a *= 0.5; f *= 2.03; } return v / n; }; };
+  const forest = new THREE.Color(0x3d4a2c), meadow = new THREE.Color(0x6b7449), stone = new THREE.Color(0x8d8c84), c = new THREE.Color();
+  const ridge = (w, d, h, seed, x, z) => {
+    const R = rngFrom(seed), noise = fbm(R);
+    const g = new THREE.PlaneGeometry(w, d, 220, 60); g.rotateX(-Math.PI / 2);
+    const p = g.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const px = p.getX(i), pz = p.getZ(i), across = clamp(1 - Math.abs(pz) / (d / 2), 0, 1), along = clamp(1 - Math.abs(px) / (w / 2), 0, 1);
+      const shape = Math.pow(across, 0.8) * Math.min(1, along * 4);
+      p.setY(i, Math.max(0, h * shape * (0.55 + 0.45 * noise(px + x, pz + z)) + 4 * noise(px * 7, pz * 7)) - 3);
+    }
+    g.computeVertexNormals();
+    const col = [], nrm = g.attributes.normal;
+    for (let i = 0; i < p.count; i++) {
+      const steep = 1 - nrm.getY(i), y = p.getY(i);
+      c.copy(meadow).lerp(forest, clamp(y / 12, 0, 1)).lerp(stone, clamp((steep - 0.35) * 3, 0, 1)).multiplyScalar(0.85 + 0.3 * noise(p.getX(i) * 9, p.getZ(i) * 9));
+      col.push(c.r, c.g, c.b);
+    }
+    g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+    const m = new THREE.Mesh(g, mat); m.position.set(x, 0, z); scene.add(m);
+  };
+  ridge(900, 300, 70, 631, -480, -380);
+  ridge(900, 300, 85, 632, 500, -420);
+  ridge(1800, 360, 95, 633, 0, -900);
+  ridge(1600, 300, 60, 634, 0, 520); // wooded rise inland
+}
+
+// ---------------- camp: tent, fire, smoke ----------------
+// parts of a tent were found in the mound. The cloth here is a reconstruction.
+{
+  const cloth = std({ ...pbr("cloth", { repeat: [3, 2] }), color: 0xd8c9a6, side: THREE.DoubleSide });
+  const tent = new THREE.Group(), len = 5, half = 1.6, ht = 2.4;
+  for (const sd of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(len, Math.hypot(half, ht)), cloth); m.position.set(sd * half / 2, ht / 2, 0); m.rotation.y = Math.PI / 2; m.rotateX(sd * -Math.atan2(half, ht)); tent.add(m); }
+  const gable = new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)]);
+  const gm = new THREE.Mesh(new THREE.ShapeGeometry(gable), cloth); gm.position.z = -len / 2; tent.add(gm);
+  const door = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(-0.5, 0), new THREE.Vector2(0, 1.5), new THREE.Vector2(0.5, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)])), cloth); door.position.z = len / 2; tent.add(door);
+  for (const z of [len / 2 + 0.05, -len / 2 - 0.05]) for (const sd of [1, -1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.1, 0.08), woodMat); b.position.set(sd * 0.55, 1.35, z); b.rotation.z = sd * 0.42; tent.add(b); }
+  const ridgePole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, len + 0.4, 8), woodMat); ridgePole.rotation.x = Math.PI / 2; ridgePole.position.y = ht + 0.02; tent.add(ridgePole);
+  tent.position.set(-11.5, groundY(-11.5, 7), 7); tent.rotation.y = 0.5; add(tent, { solid: true });
+}
+const fireSpot = new THREE.Vector3(-8.95, 0.9, -2.6);
+const fireLight = new THREE.PointLight(0xff8a3a, 6, 9, 2); fireLight.position.set(-8.95, 0.6, -2.6); scene.add(fireLight);
+{
+  const stones = [];
+  for (let i = 0; i < 9; i++) { const a = (i / 9) * TAU; stones.push(new THREE.DodecahedronGeometry(0.13, 0).scale(1, 0.7, 1).translate(-8.95 + Math.cos(a) * 0.45, 0.07, -2.6 + Math.sin(a) * 0.45)); }
+  add(new THREE.Mesh(mergeGeometries(stones), std({ ...pbr("rock"), color: 0x8c8c86 })));
+  const logs = [];
+  for (let i = 0; i < 4; i++) logs.push(new THREE.CylinderGeometry(0.045, 0.05, 0.7, 6).rotateZ(Math.PI / 2).rotateY((i / 4) * Math.PI).rotateZ(0.25).translate(-8.95, 0.12, -2.6));
+  add(new THREE.Mesh(mergeGeometries(logs), std({ color: 0x2b1d14, roughness: 1 })));
+}
+const flames = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
+flames.position.set(-8.95, 0.38, -2.6); scene.add(flames);
+const puffTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+  const g = x.createRadialGradient(64, 64, 4, 64, 64, 62); g.addColorStop(0, "rgba(220,220,218,0.55)"); g.addColorStop(1, "rgba(220,220,218,0)");
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const smoke = []; for (let i = 0; i < 10; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false })); scene.add(s); smoke.push(s); }
+
+// Per-frame updates for the world.
+function updateWorld(time, dt) {
+  water.material.uniforms.time.value += dt * 0.6;
+  foamTex.offset.x = time * 0.004; foam.position.z = Math.sin(time * 0.55) * 0.35;
+  sky.position.copy(camera.position);
+  const f = 0.85 + 0.15 * Math.sin(time * 13) * Math.sin(time * 7.3);
+  fireLight.intensity = 6 * f; flames.scale.set(1, 0.85 + 0.3 * f, 1);
+}
+
+export { SEA_Y, SHORE_Z, shoreZ, groundY, ground, grass, water, sky, smoke, fireSpot, updateWorld };

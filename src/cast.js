@@ -8,7 +8,9 @@ const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
 const hullOut = (u, s, side, d) => { const p = H.pt(u, s, side), n = H.normal(u, s, side); n.y = 0; n.normalize(); return p.addScaledVector(n, d); };
 function onGround(p) { p.y = 0; return p; }
 const cast = {};
-function addActor(name, key, seed, pos, opts = {}) { const a = new Actor(key, seed, opts); a.mesh.position.copy(pos); scene.add(a.mesh); cast[name] = a; return a; }
+// The painted figures are hidden while the realistic look is being tested. 3D figures replace them later.
+const SHOW_FIGURES = false;
+function addActor(name, key, seed, pos, opts = {}) { const a = new Actor(key, seed, opts); a.mesh.position.copy(pos); a.mesh.visible = SHOW_FIGURES; scene.add(a.mesh); cast[name] = a; return a; }
 addActor("wright", "wright", 11, onGround(hullOut(0.08, 0.46, 1, 0.5)), { face: H.pt(0.08, 0.46, 1) });
 addActor("caulk", "caulk", 12, onGround(hullOut(-0.3, 0.36, -1, 0.55)), { face: H.pt(-0.3, 0.36, -1) });
 addActor("oars", "oars", 13, v3(8, 0, 0));
