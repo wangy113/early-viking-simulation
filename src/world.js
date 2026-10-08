@@ -6,7 +6,7 @@ import { QUALITY, renderer, scene, camera, sun, add } from "./core.js";
 import { SHIP, H, woodMat, std } from "./ship.js";
 import { pbr, file, skyBackdrop, skyLight, sunDirection } from "./textures.js";
 
-const SEA_Y = 0.06, SHORE_Z = -16;
+const SEA_Y = -0.25, SHORE_Z = -16; // the beach sits about 0.3 m above the water
 
 // ---------------- sky, sky light and sun ----------------
 const sunDir = sunDirection();
@@ -52,10 +52,10 @@ function groundY(x, z) {
   const nearShip = Math.max(0, 1 - Math.max(Math.abs(x) / 14, Math.abs(z) / 16));
   const awayFromSea = THREE.MathUtils.smoothstep(z, SHORE_Z + 1, SHORE_Z + 7);
   const toSea = z - shoreZ(x); // meters inland from the waterline
-  const beach = toSea < 0.6 ? (toSea - 0.6) * 0.07 : 0; // the beach dips under the water at the waterline
+  const beach = toSea < 4 ? (toSea - 4) * 0.073 : 0; // the beach slopes under the water at the waterline
   const inland = Math.max(0, z - 28);
   const rise = inland > 0 ? Math.min(9, inland * 0.06) + Math.max(0, Math.sin(x * 0.021 + 0.7) * Math.sin(z * 0.017)) * inland * 0.08 : 0;
-  return SEA_Y + 0.042 + R * (1 - nearShip) * awayFromSea + beach + rise;
+  return 0.042 + R * (1 - nearShip) * awayFromSea + beach + rise;
 }
 const ground = (() => {
   const g = new THREE.PlaneGeometry(1400, 520, 420, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
@@ -78,7 +78,7 @@ const ground = (() => {
       .replace("#include <map_fragment>", `#include <map_fragment>
         vec2 wuv = vWorld.xz / ${T.toFixed(1)};
         diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(wetMap, wuv * 0.9).rgb * 0.62, wetW());
-        diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(grassMap, wuv * 0.8).rgb, grassW());`)
+        diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(grassMap, wuv * 0.8).rgb * vec3(0.6, 0.72, 0.45), grassW());`)
       .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
         roughnessFactor = mix(roughnessFactor, texture2D(wetArm, vWorld.xz / ${T.toFixed(1)} * 0.9).g * 0.35, wetW());
         roughnessFactor = mix(roughnessFactor, texture2D(grassArm, vWorld.xz / ${T.toFixed(1)} * 0.8).g, grassW());`);
@@ -127,6 +127,25 @@ const foam = (() => {
   const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: foamTex, transparent: true, depthWrite: false, roughness: 0.9, side: THREE.DoubleSide }));
   m.renderOrder = 1; scene.add(m); return m;
 })();
+
+// ---------------- woods inland ----------------
+// simple instanced trees on the rising ground behind the beach, mostly seen from a distance
+{
+  const R = rngFrom(655), crown = mergeGeometries([0, 1, 2].map((k) => new THREE.ConeGeometry(0.9 - k * 0.25, 0.75, 9).translate(0, -0.55 + k * 0.42, 0))), trunk = new THREE.CylinderGeometry(0.12, 0.18, 1, 6).translate(0, 0.5, 0);
+  const N = 1400, crowns = new THREE.InstancedMesh(crown, std({ color: 0xffffff, roughness: 0.95 }), N), trunks = new THREE.InstancedMesh(trunk, std({ color: 0x4a3a2c, roughness: 1 }), N);
+  const o = new THREE.Object3D(), c = new THREE.Color(); let n = 0;
+  for (let i = 0; i < 6000 && n < N; i++) {
+    const x = (R() - 0.5) * 900, z = 80 + R() * 340;
+    const dens = 0.5 + 0.5 * Math.sin(x * 0.013 + 1) * Math.sin(z * 0.02); if (R() > dens || (Math.abs(x + 14) < 18 && z < 60)) continue;
+    const y = groundY(x, z), h = 10 + R() * 9, w = h * (0.2 + R() * 0.07);
+    o.position.set(x, y, z); o.rotation.set(0, R() * 6, 0); o.scale.set(1, h * 0.4, 1); o.updateMatrix(); trunks.setMatrixAt(n, o.matrix);
+    o.position.set(x, y + h * 0.62, z); o.scale.set(w, h * 0.6, w); o.updateMatrix(); crowns.setMatrixAt(n, o.matrix);
+    crowns.setColorAt(n, c.setHSL(0.27 + R() * 0.06, 0.25 + R() * 0.15, 0.08 + R() * 0.05)); n++;
+  }
+  crowns.count = trunks.count = n;
+  crowns.castShadow = false; crowns.receiveShadow = false; trunks.castShadow = false;
+  scene.add(crowns, trunks);
+}
 
 // ---------------- wooded hills across the water ----------------
 {

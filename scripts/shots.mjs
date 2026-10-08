@@ -31,4 +31,4 @@ for (const [w, h] of sizes) for (const v of views) {
   await page.close();
 }
 await browser.close();
-server.httpServer.close();
+await server.close();

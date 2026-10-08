@@ -252,6 +252,6 @@ const boat = buildHull(BOAT, HB, { nu: 40, lap: 0.018, thick: 0.018, keelR: 0.05
   }
   add(new THREE.Mesh(mergeGeometries(parts.map((g) => g.index ? g.toNonIndexed() : g)), woodMat), { parent: boat });
 }
-boat.position.set(8.5, 0.02, -12.5); boat.rotation.y = 0.5; boat.rotation.z = 0.08; scene.add(boat);
+boat.position.set(8.5, -0.02, -12.5); boat.rotation.y = 0.5; boat.rotation.z = 0.08; scene.add(boat);
 
 export { SHIP, makeHullFns, H, hullMat, buildHull, woodMat, tubeWoodMat, ironMat, chestMat, rudderPivot, rudder, midU, mastZ, deck0, MAST_H, sail$, placeSail, shieldGroup, std };
