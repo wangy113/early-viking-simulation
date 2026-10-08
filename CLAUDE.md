@@ -17,7 +17,8 @@ A Three.js web app in which online students (Missouri Baptist University, throug
 
 ## Visual direction
 - Changed on 2026-10-08 by the user: the look is **near-realistic** (PBR materials, CC0 photo-scanned textures from Poly Haven and ambientCG, HDRI lighting, sun shadows, an ocean shader). It replaces the earlier watercolour style.
-- People and animals are 3D figures built in code. They are illustrations, not portraits, with simple faces.
+- People and animals are 3D figures built in code (`src/people.js`). They are illustrations, not portraits, with simple faces.
+- Clothing, hair and colours follow `docs/people-research.md`, which grades each choice as found, other evidence or reconstruction. Update it with a source before changing how people look.
 - Every texture or HDRI that ships must be CC0 and listed in `public/assets/CREDITS.md` with its source URL.
 
 ## Rules
