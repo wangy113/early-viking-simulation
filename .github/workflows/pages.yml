@@ -2,7 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    # main is the production site. The working branch also deploys so the latest milestone can be previewed live.
+    branches: [main, claude/kind-pascal-0zmkrw]
   workflow_dispatch:
 
 permissions:
