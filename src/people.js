@@ -11,7 +11,7 @@ import { pbr } from "./textures.js";
 // Colours follow docs/people-research.md: mostly undyed wool in natural browns and greys,
 // woad blue and greens, with madder red kept for the most senior man.
 const C = {
-  skin: "#c98f6a", shieldY: 0xd7a531, oak: 0xa77a4c, iron: 0x4b4846, bronze: "#a8833f",
+  skin: "#c4927a", shieldY: 0xd7a531, oak: 0xa77a4c, iron: 0x4b4846, bronze: "#a8833f",
   hairBrown: "#5a3d28", hairDark: "#33251b", hairFair: "#b08a52", hairRed: "#8a4a2a", hairGrey: "#8f8b84",
   undyedBrown: "#7b6450", undyedGrey: "#8a857a", undyedLight: "#b6aa92", woad: "#4f6886", woadDark: "#3c4f68", green: "#5f6d45", madder: "#8e3a2a", linen: "#cfc4ad",
 };
@@ -89,7 +89,7 @@ const smooth = (a, b, x) => THREE.MathUtils.smoothstep(x, a, b);
 
 // soft wool: physical sheen gives the fuzzy highlight real cloth has in sunlight
 const woolSheen = (hex) => mat(`wool2${hex}`, () => new THREE.MeshPhysicalMaterial({ color: hex, roughness: 1, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color(hex).multiplyScalar(0.9), normalMap: clothMaps.normalMap, normalScale: new THREE.Vector2(0.7, 0.7) }));
-const skinPhys = () => mat("skin2", () => new THREE.MeshPhysicalMaterial({ color: C.skin, roughness: 0.58, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color("#ffb59a") }));
+const skinPhys = () => mat("skin2", () => new THREE.MeshPhysicalMaterial({ color: C.skin, roughness: 0.58, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color("#f2c4b0") }));
 // strands for hair and beards: many fine curved strokes on a transparent card
 const hairTex = (() => { let t; return () => t || (t = (() => {
   const c = document.createElement("canvas"); c.width = 128; c.height = 256; const x = c.getContext("2d"), R = rngFrom(77);
@@ -166,6 +166,18 @@ function wrapMat(hex) {
 // ankle-high turnshoe with a rounded toe
 const shoeGeo = () => geo("shoe", () => mergeGeometries([new THREE.SphereGeometry(0.055, 12, 8).scale(0.8, 0.6, 2).translate(0, 0.032, 0.05), new THREE.CylinderGeometry(0.048, 0.052, 0.08, 10).translate(0, 0.07, -0.01)]));
 
+// pull the lower edge of a hair shell into uneven locks so it does not read as a helmet
+function ragged(g, amount = 0.025, seed = 5) {
+  const p = g.attributes.position, R = rngFrom(seed), clumps = Array.from({ length: 24 }, () => R());
+  let minY = Infinity; for (let i = 0; i < p.count; i++) minY = Math.min(minY, p.getY(i));
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), edge = Math.max(0, 1 - (y - minY) / 0.05);
+    const k = Math.floor(((Math.atan2(z, x) / TAU) + 0.5) * 24) % 24;
+    p.setY(i, y - edge * amount * (0.3 + clumps[k]));
+  }
+  g.computeVertexNormals(); return g;
+}
+
 class Person {
   constructor(o) {
     this.o = o; this.g = new THREE.Group();
@@ -199,7 +211,7 @@ class Person {
     }
     // arms: one tube from shoulder to wrist, bending at the elbow
     for (const [side, ua, fa, lat] of [["back", "uaL", "faL", -ARM_LAT], ["front", "uaR", "faR", ARM_LAT]]) {
-      const rings = [[0, 0.064, 0.06], [0.06, 0.058, 0.055], [0.2, 0.05, 0.048], [UA, 0.047, 0.045], [UA + 0.08, 0.044, 0.042], [UA + FA - 0.02, 0.036, 0.034], [UA + FA, 0.034, 0.032]];
+      const rings = [[0, 0.064, 0.062], [0.06, 0.06, 0.058], [0.13, 0.056, 0.058], [0.22, 0.05, 0.05], [UA, 0.047, 0.045], [UA + 0.08, 0.044, 0.042], [UA + FA - 0.02, 0.036, 0.034], [UA + FA, 0.034, 0.032]];
       skinned(skinTube(bones, rings, blend2(I[ua], I[fa], UA, 0.04), { x0: lat, y0: SHO_Y - 0.04, segs: 18 }), body);
       void side;
     }
@@ -233,7 +245,18 @@ class Person {
       }
     }
     if (o.cloak) {
-      mesh(geo("cloak2", () => new THREE.CylinderGeometry(0.24, 0.34, 0.8, 18, 1, true, Math.PI * 0.35, Math.PI * 1.25).translate(0, -0.3, 0).scale(1, 1, 0.82)), woolSheen(o.cloak), spineAcc).position.y = 0.58;
+      // a draped cloak: narrow at the shoulders, wide at the hem, with folds, open at the front right
+      const cloakGeo = geo("cloak3", () => {
+        const g2 = new THREE.CylinderGeometry(0.2, 0.36, 0.95, 40, 12, true, Math.PI * 0.32, Math.PI * 1.3), p = g2.attributes.position;
+        for (let i = 0; i < p.count; i++) {
+          const x = p.getX(i), y = p.getY(i), z = p.getZ(i), down = (0.475 - y) / 0.95, a = Math.atan2(x, z);
+          const fold = 1 + Math.sin(a * 9 + down * 2) * 0.06 * down; // folds deepen toward the hem
+          p.setXYZ(i, x * fold, y - Math.max(0, Math.sin(a - 0.4)) * 0.05 * down, z * fold * 0.85); // hem dips at the back
+        }
+        g2.translate(0, -0.42, 0); g2.computeVertexNormals(); return g2;
+      });
+      const cloakMat = mat(`cloak${o.cloak}`, () => { const m2 = woolSheen(o.cloak).clone(); m2.side = THREE.DoubleSide; return m2; });
+      mesh(cloakGeo, cloakMat, spineAcc).position.y = 0.6;
       mesh(geo("ringPin", () => new THREE.TorusGeometry(0.028, 0.006, 6, 16)), plain(C.bronze, 0.35, 0.85), spineAcc).position.set(0.13, 0.53, 0.12);
     }
 
@@ -243,8 +266,9 @@ class Person {
     mesh(limb(0.045, 0.052, 0.11), skin, this.head).position.y = -0.065;
     for (const sd of [1, -1]) {
       const ear = mesh(ball(0.022), skin, this.head); ear.position.set(sd * 0.086, -0.005, -0.008); ear.scale.set(0.4, 1, 0.75);
-      mesh(ball(0.0115), plain("#f2ece4", 0.25), this.head, false).position.set(sd * 0.031, 0.013, 0.083);
-      mesh(ball(0.0062), plain(o.eyes || "#4a5a6a", 0.2), this.head, false).position.set(sd * 0.031, 0.013, 0.0935);
+      mesh(ball(0.0098), plain("#e8ded2", 0.25), this.head, false).position.set(sd * 0.031, 0.012, 0.08);
+      mesh(ball(0.0058), plain(o.eyes || "#4a5a6a", 0.2), this.head, false).position.set(sd * 0.031, 0.011, 0.0868);
+      mesh(geo("lid", () => new THREE.SphereGeometry(0.0108, 12, 6, 0, TAU, 0, Math.PI * 0.42)), skin, this.head, false).position.set(sd * 0.031, 0.0125, 0.0802);
       mesh(geo("brow2", () => new THREE.CapsuleGeometry(0.004, 0.026, 2, 4).rotateZ(Math.PI / 2)), hairSolid, this.head, false).position.set(sd * 0.032, 0.033, 0.091);
     }
     const style = o.hairStyle || "collar";
@@ -252,10 +276,10 @@ class Person {
     const cap = () => new THREE.SphereGeometry(0.106, 18, 10, 0, TAU, 0, Math.PI * 0.36);
     shell("skull", cap, o.cap ? woolSheen(o.cap) : hairSolid).position.set(0, 0.016, -0.004);
     if (!o.cap) shell("skull", cap, hairStrands, 1.05).position.set(0, 0.016, -0.004);
-    const backShort = () => new THREE.SphereGeometry(0.108, 18, 10, Math.PI * 0.95, Math.PI * 1.1, 0, Math.PI * 0.5);
-    const backLong = () => new THREE.SphereGeometry(0.11, 18, 12, Math.PI * 0.85, Math.PI * 1.3, 0, Math.PI * 0.66);
+    const backShort = () => ragged(new THREE.SphereGeometry(0.108, 28, 12, Math.PI * 0.78, Math.PI * 1.44, 0, Math.PI * 0.5), 0.018, 6);
+    const backLong = () => ragged(new THREE.SphereGeometry(0.11, 28, 14, Math.PI * 0.8, Math.PI * 1.4, 0, Math.PI * 0.66), 0.035, 7);
     if (style === "fringe") {
-      shell("fringe", () => new THREE.SphereGeometry(0.11, 16, 6, Math.PI * 0.12, Math.PI * 0.76, Math.PI * 0.18, Math.PI * 0.2), hairStrands, 1.02).position.set(0, 0.012, 0.006);
+      shell("fringe", () => ragged(new THREE.SphereGeometry(0.11, 24, 8, Math.PI * 0.16, Math.PI * 0.68, Math.PI * 0.16, Math.PI * 0.22), 0.02, 8), hairStrands, 1.02).position.set(0, 0.012, 0.006);
       shell("hairBackShort", backShort, hairSolid).position.y = 0.012; shell("hairBackShort", backShort, hairStrands, 1.05).position.y = 0.012;
     } else if (style === "collar" || style === "knot") {
       shell("hairBackLong", backLong, hairSolid).position.y = 0.01; shell("hairBackLong", backLong, hairStrands, 1.05).position.y = 0.01;
@@ -273,6 +297,7 @@ class Person {
       this.hand[side] = mesh(handGeo(), skin, g);
       if (o.trim) mesh(geo("cuff2", () => new THREE.TorusGeometry(0.036, 0.008, 4, 14).rotateX(Math.PI / 2)), plain(o.trim, 0.5, 0.2), this.hand[side]).position.y = 0.012;
       this.foot[side] = mesh(shoeGeo(), leather(), g);
+      (this.shoulder ||= {})[side] = mesh(ball(female ? 0.056 : 0.07), body, g); this.shoulder[side].scale.set(1, 0.9, 0.95);
     }
     this.hands = { back: new THREE.Vector3(), front: new THREE.Vector3() };
     this.mirror = 1;
@@ -290,6 +315,7 @@ class Person {
       const arm = pd[`${side}Arm`], leg = pd[`${side}Leg`];
       // arm: shoulder to elbow to wrist with fixed lengths, so hands land near their targets
       a.copy(S).add(tq.set(lat, -0.04, 0));
+      this.shoulder[side].position.copy(a).add(tq.set(lat * 0.08, 0.005, 0));
       this.v(arm.el, lat, t); aim(b[ua], a, t); a.add(t.sub(a).normalize().multiplyScalar(UA));
       this.v(arm.hand, lat, t); aim(b[fa], a, t); const dir = t.sub(a).normalize(); a.addScaledVector(dir, FA);
       this.hand[side].position.copy(a); this.hand[side].quaternion.copy(b[fa].quaternion);
