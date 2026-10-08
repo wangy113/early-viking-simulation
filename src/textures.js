@@ -1,13 +1,14 @@
 import * as THREE from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import manifest from "./assets-manifest.json";
+import { TIER } from "./quality.js";
 
 // Loads every texture once before the scene is built. Scene code then asks for
 // clones with its own repeat and rotation, which share the uploaded image.
 const base = import.meta.env.BASE_URL + "assets/";
 const loaded = new Map();
 let hdr = null;
-const SIZE = 2048; // one tier for now. Quality tiers come in the performance milestone.
+const SIZE = TIER.tex; // texture size for this quality level
 
 function preloadAssets(onProgress = () => {}) {
   const manager = new THREE.LoadingManager();

@@ -102,7 +102,7 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 | Baked textures | paint textures and atlases once to PNG/WebP and load them | dropped | replaced by CC0 photo-scanned PBR textures (realistic direction) |
 | Realistic look test | ship, beach, sea, sky with PBR, HDRI, shadows, Water | ✅ done | approved by the user. M3 finished the whole scene, also approved |
 | 3D people | code-built jointed figures with the 11 task loops | ⏳ in progress | `src/people.js`. Poses reuse the PoC pose math. Painted billboards and the painter are removed |
-| Performance | profile, merge geometry, cap DPR, target 30+ fps on a Chromebook and 60 on a laptop | ⬜ not started | |
+| Performance | profile, merge geometry, cap DPR, target 30+ fps on a Chromebook and 60 on a laptop | ⏳ in progress | Quality tiers, merged meshes, automatic resolution scaling and off-screen pause done. Needs a real Chromebook measurement with `?debug` |
 | Mobile/touch | tap-to-walk, pinch, layout of the top bar and panel on phones | ⬜ not started | the top bar wraps on narrow screens and needs a menu |
 | Accessibility audit | WCAG 2.1 AA and QM 8: keyboard path to every stop, focus trap in modals, screen-reader test with NVDA, contrast, captions if audio is added | ⬜ not started | the Text version exists, but focus trapping is not implemented |
 | Canvas integration | iframe embed in a sandbox course, full-screen link, `#stop=N` links from module pages | ⬜ not started | |
@@ -196,3 +196,9 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - The user approved the realistic look test and the full 12-stop scene.
 - M4: people and animals are jointed 3D figures in `src/people.js` (rigid segments aimed joint to joint, wool, linen and leather materials). They reuse the proof of concept's `pose()` and `walkPose()` data, so the 11 task loops behave the same. The painted billboards, `painter.js`, `figures.js` and `actors.js` are gone.
 - `#cam=x,y,z,lookX,lookY,lookZ` places the camera for preview screenshots.
+
+## 2026-10-08: M5 performance and quality levels
+- `src/quality.js` picks Low, Medium or High from the device (phones, weak GPUs, 4 GB or less memory and 4 or fewer cores get Low). A visible Quality button cycles the levels.
+- Low: 1K textures, a cheap glossy sea with no reflection pass, 1024 shadow map, lighter terrain, pixel ratio 1. Medium: 1K textures, reflecting sea at 512, 2048 shadows. High: 2K textures, reflecting sea at 1024.
+- Each person's head and clothing details are merged by material, body parts sharing a material are one skinned mesh, and the shields are three meshes.
+- Measured in headless Chromium (1280x720): download 29.4 MB on High and 9.3 MB on Low and Medium. Draw calls 480 to 840 on High and 250 to 440 on Low, down from 690 to 1390. Software rendering cannot give real frame rates, so the Chromebook test is still needed.

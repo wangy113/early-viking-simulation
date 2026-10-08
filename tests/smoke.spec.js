@@ -54,3 +54,18 @@ test("#deck starts on board and #sail raises the sail", async ({ page }) => {
   await expect(page.locator("#board")).toHaveText("Step ashore");
   await expect(page.locator("#sailBtn")).toHaveText("Lower the sail");
 });
+
+test("the quality button shows the level and offers to change it", async ({ page }) => {
+  await page.goto("./?quality=low");
+  await ready(page);
+  await expect(page.locator("#qualityBtn")).toHaveText("Quality: Low");
+  await expect(page.locator("#qualityBtn")).toHaveAttribute("aria-label", /Press to change/);
+});
+
+test("Low quality loads only the small textures", async ({ page }) => {
+  const big = [];
+  page.on("request", (r) => { if (/_2k\.webp$/.test(r.url())) big.push(r.url()); });
+  await page.goto("./?quality=low");
+  await ready(page);
+  expect(big).toEqual([]);
+});

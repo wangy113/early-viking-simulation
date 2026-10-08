@@ -8,6 +8,7 @@ A Three.js web app in which online students (Missouri Baptist University, throug
 - `npm run lint:style` checks student-facing text against the writing style below.
 - `npm run textures:fetch` downloads the CC0 sources named in `scripts/textures.config.json` into `assets-src/` (git ignored). In the cloud container run it with `NODE_USE_ENV_PROXY=1`. `npm run textures:build` writes the web versions to `public/assets/` and `src/assets-manifest.json`.
 - `npm run shots -- <dir> stop1 overview deck` saves preview screenshots (set `HIDE_UI=1` to hide the interface, `PORT` to run several at once). Software WebGL is slow, so allow about two minutes per shot.
+- Quality levels live in `src/quality.js` (Low, Medium, High). `?quality=low` forces one, the Quality button cycles them and remembers the choice on that device, otherwise the device is guessed. `?debug` shows frame rate, draw calls and triangles.
 - `npx playwright test` builds, serves and runs the smoke and deep-link tests. Headless WebGL uses SwiftShader. Keep `--disable-gpu-rasterization` or 2D canvas painting takes minutes.
 
 ## Layout

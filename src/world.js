@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { Water } from "three/addons/objects/Water.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { TAU, clamp, rngFrom } from "./util.js";
-import { QUALITY, renderer, scene, camera, sun, add } from "./core.js";
+import { TIER, renderer, scene, camera, sun, add } from "./core.js";
 import { SHIP, H, woodMat, std } from "./ship.js";
 import { pbr, file, skyBackdrop, skyLight, sunDirection } from "./textures.js";
 
@@ -58,7 +58,7 @@ function groundY(x, z) {
   return 0.042 + R * (1 - nearShip) * awayFromSea + beach + rise;
 }
 const ground = (() => {
-  const g = new THREE.PlaneGeometry(1400, 520, 420, 220); g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
+  const g = new THREE.PlaneGeometry(1400, 520, TIER.water ? 420 : 240, TIER.water ? 220 : 130); // lighter terrain on Low g.rotateX(-Math.PI / 2); g.translate(0, 0, 200);
   const p = g.attributes.position;
   for (let i = 0; i < p.count; i++) p.setY(i, groundY(p.getX(i), p.getZ(i)));
   g.computeVertexNormals();
@@ -99,16 +99,21 @@ const grass = ground;
 }
 
 // ---------------- sea ----------------
-const water = new Water(new THREE.PlaneGeometry(6000, 3000), {
-  textureWidth: QUALITY === "low" ? 256 : 1024, textureHeight: QUALITY === "low" ? 256 : 1024,
-  waterNormals: file("tex/waternormals.jpg", { repeat: [1, 1] }),
-  sunDirection: sunDir.clone(), sunColor: 0xfff3e0, waterColor: 0x0a2f3c,
-  distortionScale: 2.2, fog: true, alpha: 1.0,
-});
+// Medium and High use the reflecting ocean shader. Low uses a cheaper glossy surface that
+// reflects the sky light and scrolls its ripples, without rendering the scene a second time.
+const water = TIER.water ? (() => {
+  const w = new Water(new THREE.PlaneGeometry(6000, 3000), {
+    textureWidth: TIER.water, textureHeight: TIER.water,
+    waterNormals: file("tex/waternormals.jpg", { repeat: [1, 1] }),
+    sunDirection: sunDir.clone(), sunColor: 0xfff3e0, waterColor: 0x0a2f3c,
+    distortionScale: 2.2, fog: true, alpha: 1.0,
+  });
+  w.material.uniforms.size.value = 6;
+  // Water reflects about 4 percent of light head-on. The addon uses 30 percent, which turns the sea grey.
+  w.material.fragmentShader = w.material.fragmentShader.replace("float rf0 = 0.3;", "float rf0 = 0.04;").replace("reflectionSample * 0.9", "reflectionSample * 0.48");
+  return w;
+})() : new THREE.Mesh(new THREE.PlaneGeometry(6000, 3000), new THREE.MeshStandardMaterial({ color: 0x174652, roughness: 0.08, metalness: 0, normalMap: file("tex/waternormals.jpg", { repeat: [300, 150] }), normalScale: new THREE.Vector2(0.35, 0.35) }));
 water.rotation.x = -Math.PI / 2; water.position.set(0, SEA_Y, SHORE_Z + 3 - 1500); // ends just under the beach
-water.material.uniforms.size.value = 6;
-// Water reflects about 4 percent of light head-on. The addon uses 30 percent, which turns the sea grey.
-water.material.fragmentShader = water.material.fragmentShader.replace("float rf0 = 0.3;", "float rf0 = 0.04;").replace("reflectionSample * 0.9", "reflectionSample * 0.48");
 scene.add(water);
 
 // foam along the waterline, a strip that follows the shore and drifts in and out
@@ -251,7 +256,8 @@ const gulls = [];
 
 // Per-frame updates for the world.
 function updateWorld(time, dt) {
-  water.material.uniforms.time.value += dt * 0.6;
+  if (water.material.uniforms) water.material.uniforms.time.value += dt * 0.6;
+  else water.material.normalMap.offset.set(time * 0.01, time * 0.006);
   foamTex.offset.x = time * 0.004; foam.position.z = Math.sin(time * 0.55) * 0.35;
   sky.position.copy(camera.position);
   gulls.forEach((g, i) => {

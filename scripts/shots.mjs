@@ -18,8 +18,9 @@ for (const [w, h] of sizes) for (const v of views) {
   page.on("pageerror", (e) => console.error(v, "pageerror", e.message));
   page.on("console", (m) => { if (m.type() === "error" || m.type() === "warning") console.error(v, m.type(), m.text().slice(0, 300)); });
   page.on("requestfailed", (r) => console.error(v, "failed", r.url()));
+  const q = process.env.QUALITY ? `?quality=${process.env.QUALITY}` : "";
   const hash = v.startsWith("cam=") ? `#${v}` : v.startsWith("stop") ? `#stop=${v.slice(4)}` : ["deck", "overview"].includes(v) ? `#${v}` : v === "sail" ? "#sail&stop=6" : "";
-  await page.goto(`http://localhost:${PORT}/${hash}`);
+  await page.goto(`http://localhost:${PORT}/${q}${hash}`);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 180_000, polling: 500 });
   await page.waitForTimeout(v === "overview" ? 6000 : 2500);
   if (hideUi) await page.addStyleTag({ content: ".bar,.panel,.pad,#markers,.hint,.modal-back,#loader{display:none!important}" });

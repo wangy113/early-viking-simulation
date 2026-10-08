@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { TAU, lerp, rngFrom } from "./util.js";
-import { scene, add } from "./core.js";
+import { scene, add, bakeStatic } from "./core.js";
 import { pbr } from "./textures.js";
 
 // ---- ship dimensions (Gokstad: about 23.3 m long, 5.2 m wide, 16 strakes a side) ----
@@ -167,8 +167,10 @@ const shieldGroup = [];
     const p = H.pt(u, s, side), n = H.normal(u, s, side); n.y = 0; n.normalize();
     p.x = side * (Math.abs(H.pt(u, 1, side).x) + 0.09 + (j % 2) * 0.024); // outside the rail, overlapping
     const g = new THREE.Group(); g.add(new THREE.Mesh(disc, mats[j % 2]), new THREE.Mesh(boss, bossMat));
-    g.position.copy(p); g.lookAt(p.clone().add(n)); g.rotateZ((j * 1.7) % 1); add(g); shieldGroup.push(g);
+    g.position.copy(p); g.lookAt(p.clone().add(n)); g.rotateZ((j * 1.7) % 1); shieldGroup.push(g);
   }
+  // all shields merge into three meshes: yellow boards, black boards and iron bosses
+  const shields = new THREE.Group(); shields.add(...shieldGroup); add(bakeStatic(shields));
 }
 // side rudder on the starboard quarter
 const rudderPivot = H.pt(0.8, 0.95, 1).add(new THREE.Vector3(0.3, 0, 0));

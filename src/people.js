@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { TAU, lerp, CUB, rngFrom } from "./util.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { pbr } from "./textures.js";
+import { bakeStatic } from "./core.js";
 
 // People and animals as jointed 3D figures. Poses come from the proof of concept's side-view
 // pose functions, in cubits with x forward and y up negative. Each figure maps them to its own
@@ -191,7 +192,9 @@ class Person {
     for (const n of names) this.b[n].position.set(...rest[n]);
     g.updateMatrixWorld(true);
     const skeleton = new THREE.Skeleton(bones);
-    const skinned = (geom, m) => { const sm = new THREE.SkinnedMesh(geom, m); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false; g.add(sm); sm.bind(skeleton); return sm; };
+    // skinned parts are collected, then the ones sharing a material are merged into one mesh
+    const parts = new Map();
+    const skinned = (geom, m) => { if (!parts.has(m)) parts.set(m, []); parts.get(m).push(geom); };
 
     // torso: from below the belt to the shoulders, wider at the chest, flattened front to back
     const torsoRings = [[-0.06, 0.165, 0.13], [0, 0.168, 0.13], [0.12, 0.178, 0.135], [0.3, 0.18, 0.13], [0.42, 0.205, 0.14], [0.5, 0.2, 0.13], [0.55, 0.15, 0.1], [0.58, 0.07, 0.06], [0.6, 0.05, 0.05]].map(([s, rx, rz]) => [s + 0.06, rx * (female ? 0.95 : 1), rz * (female ? 1.04 : 1)]);
@@ -221,6 +224,7 @@ class Person {
       const geom = skinTube(bones, rings, blend2(I[th], I[sh], TH, 0.05), { x0: lat, y0: HIP_Y, segs: 18, groups: [[0, TH + 0.08, 0], [TH + 0.08, TH + SH, 1]] });
       skinned(geom, [legM, wrapM]);
     }
+    for (const [m, list] of parts) { const sm = new THREE.SkinnedMesh(list.length > 1 && !Array.isArray(m) ? mergeGeometries(list) : list[0], m); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false; g.add(sm); sm.bind(skeleton); for (const extra of Array.isArray(m) ? list.slice(1) : []) { const sm2 = new THREE.SkinnedMesh(extra, m); sm2.castShadow = true; sm2.receiveShadow = true; sm2.frustumCulled = false; g.add(sm2); sm2.bind(skeleton); } }
     this.skeleton = skeleton;
 
     // belt, buckle, knife and trim ride on the pelvis bone; the cloak and brooches on the spine bone
@@ -294,11 +298,14 @@ class Person {
     // hands and turnshoes
     this.hand = {}; this.foot = {};
     for (const side of ["back", "front"]) {
-      this.hand[side] = mesh(handGeo(), skin, g);
+      this.hand[side] = mesh(handGeo(), skin, g, false); // small parts skip the shadow pass
       if (o.trim) mesh(geo("cuff2", () => new THREE.TorusGeometry(0.036, 0.008, 4, 14).rotateX(Math.PI / 2)), plain(o.trim, 0.5, 0.2), this.hand[side]).position.y = 0.012;
-      this.foot[side] = mesh(shoeGeo(), leather(), g);
-      (this.shoulder ||= {})[side] = mesh(ball(female ? 0.056 : 0.07), body, g); this.shoulder[side].scale.set(1, 0.9, 0.95);
+      this.foot[side] = mesh(shoeGeo(), leather(), g, false);
+      (this.shoulder ||= {})[side] = mesh(ball(female ? 0.056 : 0.07), body, g, false); this.shoulder[side].scale.set(1, 0.9, 0.95);
     }
+    // fewer draw calls: merge the head and the clothing details into one mesh per material
+    bakeStatic(this.head); bakeStatic(pelvisAcc); bakeStatic(spineAcc);
+    pelvisAcc.traverse((o) => { o.castShadow = false; });
     this.hands = { back: new THREE.Vector3(), front: new THREE.Vector3() };
     this.mirror = 1;
   }
