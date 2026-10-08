@@ -8,8 +8,9 @@ import { pbr } from "./textures.js";
 const SHIP = { Lh: 10.85, B: 5.2, D: 2.0, Y0: 0.45, strakes: 16 };
 function makeHullFns(S) {
   const hb = (u) => (S.B / 2) * Math.pow(Math.max(0, 1 - u * u), 0.6);
-  const keelY = (u) => 0.35 * Math.pow(Math.abs(u), 4);
-  const sheer = (u) => S.D + 1.15 * Math.pow(Math.abs(u), 3.2);
+  const rocker = S.rocker ?? 0.35, rise = S.rise ?? 1.15;
+  const keelY = (u) => rocker * Math.pow(Math.abs(u), 4);
+  const sheer = (u) => S.D + rise * Math.pow(Math.abs(u), 3.2);
   const xs = (s) => Math.pow(Math.sin((s * Math.PI) / 2), 0.75) * (1 + 0.05 * s);
   const ys = (s) => Math.pow(s, 1.25);
   const pt = (u, s, side = 1) => {
@@ -98,12 +99,13 @@ function buildHull(S, Hf, opts = {}) {
   const keelR = opts.keelR || 0.11;
   const keelPts = []; for (let a = 0; a <= 20; a++) { const u = -0.95 + (1.9 * a) / 20; keelPts.push(new THREE.Vector3(0, S.Y0 + Hf.keelY(u) - 0.06, u * S.Lh)); }
   add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(keelPts), 40, keelR, 8), tubeWoodMat), { parent: group, solid: true });
-  const sc = S.D / 2;
   for (const sg of [1, -1]) {
     const L = S.Lh, Y = S.Y0;
-    const pts = [[L - 1.0, Y + 0.12], [L - 0.2, Y + 0.28], [L + 0.15 * sc, Y + 0.9 * sc], [L + 0.45 * sc, Y + 1.8 * sc], [L + 0.8 * sc, Y + 2.9 * sc], [L + 1.0 * sc, Y + 3.8 * sc], [L + 0.95 * sc, Y + 4.5 * sc], [L + 0.7 * sc, Y + 4.8 * sc]];
+    const k = (S.D + (S.rise ?? 1.15)) / 3.15; // stems scale with the hull's height (1 for the Gokstad ship)
+    const pts = [[L - 1.0 * k, Y + 0.12 * k], [L - 0.2 * k, Y + 0.28 * k], [L + 0.15 * k, Y + 0.9 * k], [L + 0.45 * k, Y + 1.8 * k], [L + 0.8 * k, Y + 2.9 * k], [L + 1.0 * k, Y + 3.8 * k], [L + 0.95 * k, Y + 4.5 * k], [L + 0.7 * k, Y + 4.8 * k]];
     const curve = new THREE.CatmullRomCurve3(pts.map(([z, y]) => new THREE.Vector3(0, y, sg * z)));
-    add(new THREE.Mesh(new THREE.TubeGeometry(curve, 60, keelR * 1.15, 10), tubeWoodMat), { parent: group, solid: true });
+    const stem = new THREE.TubeGeometry(curve, 60, keelR * 1.5, 12); stem.scale(0.55, 1, 1); // narrow athwartships, deep fore and aft
+    add(new THREE.Mesh(stem, tubeWoodMat), { parent: group, solid: true });
   }
   return group;
 }
@@ -172,7 +174,12 @@ const shieldGroup = [];
 const rudderPivot = H.pt(0.8, 0.95, 1).add(new THREE.Vector3(0.3, 0, 0));
 const rudder = new THREE.Group(); rudder.position.copy(rudderPivot);
 {
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.3, 0.5), woodMat); blade.position.set(0, -0.9, 0.9); blade.rotation.x = -0.5; rudder.add(blade);
+  // the steering board: a narrow neck at the top, a broad blade below
+  const prof = new THREE.Shape();
+  prof.moveTo(-0.11, 1.65); prof.lineTo(0.11, 1.65); prof.lineTo(0.13, 0.4); prof.quadraticCurveTo(0.34, 0.1, 0.36, -0.9); prof.quadraticCurveTo(0.34, -1.55, 0.05, -1.65); prof.lineTo(-0.18, -1.6); prof.quadraticCurveTo(-0.24, -0.6, -0.12, 0.4); prof.closePath();
+  const bg = new THREE.ExtrudeGeometry(prof, { depth: 0.07, bevelEnabled: true, bevelThickness: 0.015, bevelSize: 0.015, bevelSegments: 2, curveSegments: 10 });
+  bg.translate(0, 0, -0.035); bg.rotateY(Math.PI / 2);
+  const blade = new THREE.Mesh(bg, woodMat); blade.position.set(0, -0.9, 0.9); blade.rotation.x = -0.5; rudder.add(blade);
   const boss = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.5), woodMat); boss.position.set(-0.2, -1.4, 0); rudder.add(boss);
   const tiller = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.4, 8), woodMat); tiller.rotation.z = Math.PI / 2; tiller.position.set(-0.6, 0.15, 0); rudder.add(tiller);
 }
@@ -231,9 +238,20 @@ placeSail(0);
 }
 
 // ---- small boat (one of three found in the mound) ----
-const BOAT = { Lh: 3.0, B: 1.35, D: 0.62, Y0: 0.04, strakes: 5 };
+const BOAT = { Lh: 3.0, B: 1.35, D: 0.55, Y0: 0.04, strakes: 5, rise: 0.38, rocker: 0.08 };
 const HB = makeHullFns(BOAT);
 const boat = buildHull(BOAT, HB, { nu: 40, lap: 0.018, thick: 0.018, keelR: 0.05, rivetR: 0.008, seed: 77 });
-boat.position.set(8.5, 0, -12.5); boat.rotation.y = 0.5; boat.rotation.z = 0.12; scene.add(boat);
+{
+  // two thwarts and light frames inside the boat
+  const parts = [];
+  for (const u of [-0.25, 0.3]) { const y = HB.pt(u, 0.82).y, w = HB.hb(u) * HB.xs(0.82); parts.push(new THREE.BoxGeometry(w * 2, 0.04, 0.22).translate(0, y, u * BOAT.Lh)); }
+  for (let f = 0; f < 7; f++) {
+    const u = -0.7 + (1.4 * f) / 6, pts = [];
+    for (let a = 0; a <= 10; a++) { const s = 0.75 * (1 - a / 5), sd = a <= 5 ? 1 : -1; const p = HB.pt(u, Math.abs(s), sd); p.addScaledVector(HB.normal(u, Math.abs(s), sd), -0.03); pts.push(p); }
+    parts.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.025, 5));
+  }
+  add(new THREE.Mesh(mergeGeometries(parts.map((g) => g.index ? g.toNonIndexed() : g)), woodMat), { parent: boat });
+}
+boat.position.set(8.5, 0.02, -12.5); boat.rotation.y = 0.5; boat.rotation.z = 0.08; scene.add(boat);
 
 export { SHIP, makeHullFns, H, hullMat, buildHull, woodMat, tubeWoodMat, ironMat, chestMat, rudderPivot, rudder, midU, mastZ, deck0, MAST_H, sail$, placeSail, shieldGroup, std };

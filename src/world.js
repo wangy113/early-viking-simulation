@@ -162,9 +162,22 @@ const foam = (() => {
 // ---------------- camp: tent, fire, smoke ----------------
 // parts of a tent were found in the mound. The cloth here is a reconstruction.
 {
-  const cloth = std({ ...pbr("cloth", { repeat: [3, 2] }), color: 0xd8c9a6, side: THREE.DoubleSide });
+  const cloth = std({ ...pbr("cloth", { repeat: [3, 2] }), color: 0x9d9686, side: THREE.DoubleSide }); // undyed wool
   const tent = new THREE.Group(), len = 5, half = 1.6, ht = 2.4;
-  for (const sd of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(len, Math.hypot(half, ht)), cloth); m.position.set(sd * half / 2, ht / 2, 0); m.rotation.y = Math.PI / 2; m.rotateX(sd * -Math.atan2(half, ht)); tent.add(m); }
+  // each roof side is wool hanging from the ridge, sagging between the end frames
+  for (const sd of [1, -1]) {
+    const g = new THREE.PlaneGeometry(len, 1, 40, 16), p = g.attributes.position, R = rngFrom(sd > 0 ? 641 : 642);
+    const wr = Array.from({ length: 6 }, () => [R() * 6, 2 + R() * 5, R() * 0.012]);
+    for (let i = 0; i < p.count; i++) {
+      const z = p.getX(i), t = 0.5 - p.getY(i); // t runs from 0 at the ridge to 1 at the hem
+      const edge = Math.sin(Math.PI * (z / len + 0.5));
+      const sag = 0.3 * Math.sin(Math.PI * t) * (0.35 + 0.65 * edge) + wr.reduce((acc, [ph, f, amp]) => acc + amp * Math.sin(z * f + ph) * t, 0);
+      const x = sd * (half * t * 1.02) - sd * sag * Math.cos(Math.atan2(half, ht)), y = ht * (1 - t) - sag * Math.sin(Math.atan2(half, ht)) * 0.4;
+      p.setXYZ(i, x, y, z);
+    }
+    g.computeVertexNormals();
+    tent.add(new THREE.Mesh(g, cloth));
+  }
   const gable = new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)]);
   const gm = new THREE.Mesh(new THREE.ShapeGeometry(gable), cloth); gm.position.z = -len / 2; tent.add(gm);
   const door = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(-0.5, 0), new THREE.Vector2(0, 1.5), new THREE.Vector2(0.5, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)])), cloth); door.position.z = len / 2; tent.add(door);
@@ -182,8 +195,17 @@ const fireLight = new THREE.PointLight(0xff8a3a, 6, 9, 2); fireLight.position.se
   for (let i = 0; i < 4; i++) logs.push(new THREE.CylinderGeometry(0.045, 0.05, 0.7, 6).rotateZ(Math.PI / 2).rotateY((i / 4) * Math.PI).rotateZ(0.25).translate(-8.95, 0.12, -2.6));
   add(new THREE.Mesh(mergeGeometries(logs), std({ color: 0x2b1d14, roughness: 1 })));
 }
-const flames = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.55, 10, 1, true), new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.85, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide }));
-flames.position.set(-8.95, 0.38, -2.6); scene.add(flames);
+// flames: two crossed cards with a soft fire gradient, flickering in updateWorld
+const flames = new THREE.Group();
+{
+  const c = document.createElement("canvas"); c.width = 64; c.height = 128; const x = c.getContext("2d");
+  const g = x.createRadialGradient(32, 108, 2, 32, 90, 60); g.addColorStop(0, "rgba(255,246,200,1)"); g.addColorStop(0.25, "rgba(255,190,80,0.95)"); g.addColorStop(0.6, "rgba(230,90,20,0.55)"); g.addColorStop(1, "rgba(160,40,0,0)");
+  x.fillStyle = g; x.beginPath(); x.moveTo(32, 4); x.bezierCurveTo(60, 60, 58, 120, 32, 124); x.bezierCurveTo(6, 120, 4, 60, 32, 4); x.fill();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, side: THREE.DoubleSide, toneMapped: false });
+  for (let i = 0; i < 3; i++) { const q = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.75), m); q.rotation.y = (i * Math.PI) / 3; q.position.y = 0.3; flames.add(q); }
+  flames.position.set(-8.95, 0.05, -2.6); scene.add(flames);
+}
 const puffTex = (() => {
   const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
   const g = x.createRadialGradient(64, 64, 4, 64, 64, 62); g.addColorStop(0, "rgba(220,220,218,0.55)"); g.addColorStop(1, "rgba(220,220,218,0)");
@@ -191,11 +213,34 @@ const puffTex = (() => {
 })();
 const smoke = []; for (let i = 0; i < 10; i++) { const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: puffTex, transparent: true, depthWrite: false })); scene.add(s); smoke.push(s); }
 
+// gulls wheeling over the shore
+const gulls = [];
+{
+  const body = std({ color: 0xe9e8e4, roughness: 0.8 }), tip = std({ color: 0x55575a, roughness: 0.8 });
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group(), R = rngFrom(700 + i);
+    g.add(new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.28, 3, 6).rotateX(Math.PI / 2), body));
+    for (const sd of [1, -1]) {
+      const w = new THREE.Group(); w.position.x = sd * 0.04;
+      w.add(new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.012, 0.16).translate(sd * 0.21, 0, 0), body));
+      w.add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.01, 0.11).translate(sd * 0.52, 0, 0.02), tip));
+      g.add(w); g.userData[sd > 0 ? "r" : "l"] = w;
+    }
+    g.userData.p = [R(), R(), R()]; scene.add(g); gulls.push(g);
+  }
+}
+
 // Per-frame updates for the world.
 function updateWorld(time, dt) {
   water.material.uniforms.time.value += dt * 0.6;
   foamTex.offset.x = time * 0.004; foam.position.z = Math.sin(time * 0.55) * 0.35;
   sky.position.copy(camera.position);
+  gulls.forEach((g, i) => {
+    const [r1, r2, r3] = g.userData.p, a = time * (0.12 + r1 * 0.05) + i, rad = 25 + r2 * 15;
+    g.position.set(Math.cos(a) * rad - 5, 14 + r3 * 8 + Math.sin(time + i) * 0.5, Math.sin(a) * (20 + r3 * 10) - 25);
+    g.rotation.y = -a; g.rotation.z = 0.25;
+    const flap = Math.sin(time * 6 + i * 2) * 0.45; g.userData.r.rotation.z = flap; g.userData.l.rotation.z = -flap;
+  });
   const f = 0.85 + 0.15 * Math.sin(time * 13) * Math.sin(time * 7.3);
   fireLight.intensity = 6 * f; flames.scale.set(1, 0.85 + 0.3 * f, 1);
 }
