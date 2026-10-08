@@ -100,15 +100,15 @@ const hairMat = (hex) => mat(`hair2${hex}`, () => new THREE.MeshStandardMaterial
 
 // A skinned tube along a vertical chain in rest pose. rings: list of [s, rx, rz] from the top,
 // s in meters down the chain. weights(s, x, z) returns [[boneIndex, weight], ...].
-function skinTube(bones, rings, weights, { x0 = 0, y0 = 0, segs = 16, up = false, folds = 0, groups = null } = {}) {
+function skinTube(bones, rings, weights, { x0 = 0, y0 = 0, z0 = 0, segs = 16, up = false, folds = 0, groups = null } = {}) {
   const pos = [], uv = [], si = [], sw = [], idx = [], n = rings.length;
   const total = rings[n - 1][0];
   rings.forEach(([s, rx, rz], i) => {
     for (let k = 0; k <= segs; k++) {
       const a = (k / segs) * TAU, fold = folds ? 1 + folds * Math.sin(a * 13) * smooth(0.05, 0.3, s) : 1;
-      const x = x0 + Math.sin(a) * rx * fold, z = Math.cos(a) * rz * fold, y = up ? y0 + s : y0 - s;
+      const x = x0 + Math.sin(a) * rx * fold, z = z0 + Math.cos(a) * rz * fold, y = up ? y0 + s : y0 - s;
       pos.push(x, y, z); uv.push(k / segs, s / total);
-      const w = weights(s, x - x0, z).concat([[0, 0], [0, 0], [0, 0], [0, 0]]).slice(0, 4), sum = w.reduce((t, [, v]) => t + v, 0) || 1;
+      const w = weights(s, x - x0, z - z0).concat([[0, 0], [0, 0], [0, 0], [0, 0]]).slice(0, 4), sum = w.reduce((t, [, v]) => t + v, 0) || 1;
       si.push(...w.map(([b]) => b)); sw.push(...w.map(([, v]) => v / sum));
     }
   });
@@ -304,6 +304,133 @@ class Person {
   }
 }
 
+// ---------------- animals ----------------
+// Horses and dogs use the same kit as the people: a skinned body on a flat bone rig, a sculpted
+// head, and strand hair for manes and tails. Proportions follow small Viking Age horses
+// (about 1.3 m at the withers) and a medium dog. Coat colours and the dog's type are reconstruction.
+const coatMat = (hex, sheen = 0.5) => mat(`coat${hex}${sheen}`, () => new THREE.MeshPhysicalMaterial({ color: hex, roughness: 0.6, sheen, sheenRoughness: 0.45, sheenColor: new THREE.Color(hex).lerp(new THREE.Color("#fff3e0"), 0.25), normalMap: clothMaps.normalMap, normalScale: new THREE.Vector2(0.25, 0.25) }));
+
+// a skinned body lofted along +z; rings are [z, top, bottom, half width]
+function loftZ(rings, boneIndex, segs = 28) {
+  const pos = [], uv = [], si = [], sw = [], idx = [];
+  rings.forEach(([z, top, bot, hw], i) => {
+    const cy = (top + bot) / 2, ry = (top - bot) / 2;
+    for (let k = 0; k <= segs; k++) { const a = (k / segs) * TAU; pos.push(Math.sin(a) * hw, cy + Math.cos(a) * ry, z); uv.push(k / segs, i / (rings.length - 1)); si.push(boneIndex, 0, 0, 0); sw.push(1, 0, 0, 0); }
+  });
+  for (let i = 0; i < rings.length - 1; i++) for (let k = 0; k < segs; k++) { const a = i * (segs + 1) + k, b = a + segs + 1; idx.push(a, a + 1, b, b, a + 1, b + 1); }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+  g.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4)); g.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4));
+  g.setIndex(idx); g.computeVertexNormals();
+  // make sure the top of the body faces up
+  if (g.attributes.normal.getY(Math.floor(rings.length / 2) * (segs + 1)) < 0) { g.index.array.reverse(); g.computeVertexNormals(); }
+  return g;
+}
+// a sculpted animal head along +z from the back of the skull (0) to the muzzle (len)
+const animalHead = (key, len, rBack, rFront, flat, jowl) => geo(key, () => {
+  const g = new THREE.SphereGeometry(1, 36, 24), p = g.attributes.position, d = new THREE.Vector3();
+  for (let i = 0; i < p.count; i++) {
+    d.fromBufferAttribute(p, i);
+    const t = (d.z + 1) / 2, r = lerp(rBack, rFront, Math.pow(t, 0.75)) * (1 + jowl * Math.exp(-((t - 0.18) ** 2) / 0.02) * Math.max(0, -d.y));
+    const top = d.y > 0 ? 0.88 : 1; // flat forehead and nose bridge
+    p.setXYZ(i, d.x * r * flat, d.y * r * top, t * len);
+  }
+  g.computeVertexNormals(); return g;
+});
+
+function buildQuad(g, Q) {
+  const coat = coatMat(Q.coat), points = coatMat(Q.points, 0.3), hairM = hairMat(Q.hair), hairSolid = plain(Q.hair, 0.85);
+  const names = ["body", "neck1", "neck2", "lfU", "lfL", "rfU", "rfL", "lhU", "lhL", "rhU", "rhL"];
+  const A = {}; const bones = names.map((n) => { const b = new THREE.Bone(); A[n] = b; g.add(b); return b; }); const I = Object.fromEntries(names.map((n, i) => [n, i]));
+  const nb = new THREE.Vector3(...Q.neckBase);
+  A.neck1.position.copy(nb); A.neck2.position.copy(nb).add(new THREE.Vector3(0, Q.neckSeg, 0));
+  const legs = Q.legs.map(([key, z, lat, top, joint, foot, rU, rJ, rL]) => {
+    A[`${key}U`].position.set(lat, top, z); A[`${key}L`].position.set(lat, joint, z);
+    // pastern and hoof below the fetlock
+    const hoof = new THREE.Group(); g.add(hoof);
+    mesh(limb(rL * 1.05, rL * 1.2, foot * 0.55), coatMat(Q.points, 0.3), hoof);
+    mesh(geo(`${Q.kind}Hoof`, () => new THREE.CylinderGeometry(rL * 1.15, rL * 1.45, foot * 0.5, 12).translate(0, -foot * 0.75, 0.01)), plain("#2b241e", 0.55), hoof);
+    return { key, z, lat, top, joint, foot, hind: key.endsWith("h"), hoof };
+  });
+  g.updateMatrixWorld(true);
+  const skel = new THREE.Skeleton(bones);
+  const skinned = (geom, m) => { const sm = new THREE.SkinnedMesh(geom, m); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false; g.add(sm); sm.bind(skel); return sm; };
+  skinned(loftZ(Q.body, I.body), coat);
+  // neck, vertical in the rest pose; the crest is on its back (-z) side so it ends up on top
+  skinned(skinTube(bones, Q.neckRings, blend2(I.neck1, I.neck2, Q.neckSeg, 0.08), { x0: 0, y0: nb.y, z0: nb.z, up: true, segs: 20 }), coat);
+  // legs: upper leg in the coat colour, darker below the knee or hock
+  for (const L of Q.legs) {
+    const [key, z, lat, top, joint, foot, rU, rJ, rL] = L, l1 = top - joint, l2 = joint - foot;
+    const rings = [[0, rU, rU * 1.1], [l1 * 0.5, rU * 0.8, rU * 0.95], [l1 - 0.03, rJ, rJ * 1.1], [l1, rJ, rJ * 1.15], [l1 + 0.05, rL * 1.15, rL * 1.2], [l1 + l2 - 0.02, rL, rL * 1.1], [l1 + l2, rL * 1.15, rL * 1.2]];
+    skinned(skinTube(bones, rings, blend2(I[`${key}U`], I[`${key}L`], l1, 0.04), { x0: lat, y0: top, z0: z, segs: 14, groups: [[0, l1 * 0.8, 0], [l1 * 0.8, l1 + l2, 1]] }), [coat, points]);
+  }
+  // mane: strands hanging from the crest down one side of the neck
+  if (Q.mane) {
+    const pos = [], uv = [], si = [], sw = [], idx = [], n = 10, len = Q.neckSeg * 2;
+    for (let i = 0; i <= n; i++) {
+      const s = (i / n) * len, y = nb.y + s, rz = lerp(Q.neckRings[0][2], Q.neckRings.at(-1)[2], i / n), t = smooth(Q.neckSeg - 0.08, Q.neckSeg + 0.08, s);
+      for (const [dx, dz, v] of [[0, -rz - 0.01, 0], [Q.mane, -rz * 0.35, 1]]) { pos.push(dx, y + (v ? -0.06 : 0.02), nb.z + dz); uv.push(i / n * 3, v); si.push(I.neck1, I.neck2, 0, 0); sw.push(1 - t, t, 0, 0); }
+    }
+    for (let i = 0; i < n; i++) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+    const mg = new THREE.BufferGeometry(); mg.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); mg.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2));
+    mg.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(si, 4)); mg.setAttribute("skinWeight", new THREE.Float32BufferAttribute(sw, 4)); mg.setIndex(idx); mg.computeVertexNormals();
+    skinned(mg, hairM); const m2 = skinned(mg, hairM); m2.position.x = -0.012;
+  }
+  // head
+  const head = new THREE.Group(); g.add(head);
+  const [hl, hb, hf, hflat, hjowl] = Q.head;
+  mesh(animalHead(`${Q.kind}Head`, hl, hb, hf, hflat, hjowl), coat, head);
+  for (const sd of [1, -1]) {
+    mesh(ball(Q.eye), plain("#1a120d", 0.15), head, false).position.set(sd * hb * hflat * 0.92, hb * 0.35, hl * 0.22);
+    mesh(ball(Q.eye * 0.9), plain("#120c09", 0.5), head, false).position.set(sd * hf * hflat * 0.55, -hf * 0.1, hl * 0.97);
+    const ear = mesh(geo(`${Q.kind}Ear`, () => new THREE.ConeGeometry(Q.ear[0], Q.ear[1], 8).translate(0, Q.ear[1] / 2, 0).scale(1, 1, 0.55)), coat, head);
+    ear.position.set(sd * hb * 0.55, hb * 0.75, hl * 0.06); ear.rotation.set(-0.15, 0, -sd * 0.25);
+  }
+  if (Q.forelock) mesh(geo("forelock", () => new THREE.PlaneGeometry(0.1, 0.18).translate(0, -0.09, 0)), hairM, head).position.set(0, hb * 0.95, hl * 0.12);
+  // tail
+  const tail = new THREE.Group(); tail.position.set(...Q.tailRoot); g.add(tail);
+  if (Q.kind === "horse") {
+    mesh(limb(0.05, 0.035, 0.22), points, tail);
+    // a tapering bundle of hair: two nested open cones of strands
+    for (const [r, len] of [[0.075, 0.74], [0.05, 0.66]]) mesh(geo(`tailHair${r}`, () => new THREE.CylinderGeometry(r * 0.7, r * 1.6, len, 14, 1, true).translate(0, -len / 2 - 0.12, 0)), hairM, tail);
+  } else {
+    // a curled tail, as on northern spitz-type dogs (reconstruction)
+    mesh(geo("dogTail", () => new THREE.TorusGeometry(0.075, 0.028, 8, 16, Math.PI * 1.3).rotateY(Math.PI / 2).rotateX(0.4)), coat, tail).position.set(0, 0.06, 0.02);
+  }
+  return { A, legs, head, tail, nb, Q, hairSolid };
+}
+
+// aim the neck from its base through an arched middle to the poll, then hang the head from it
+function poseNeck(s, poll, pitch) {
+  const { A, nb, head, Q } = s, mid = nb.clone().lerp(poll, 0.5).add(new THREE.Vector3(0, 0.06, -0.04));
+  aim(A.neck1, nb, mid, UP); const p2 = nb.clone().add(mid.sub(nb).normalize().multiplyScalar(Q.neckSeg));
+  aim(A.neck2, p2, poll, UP); const end = p2.clone().add(poll.clone().sub(p2).normalize().multiplyScalar(Q.neckSeg));
+  head.position.copy(end); head.rotation.set(pitch, 0, 0);
+}
+// aim one leg toward a joint and a foot position
+function poseLeg(s, L, jointZ, footZ, lift = 0) {
+  const a = new THREE.Vector3(L.lat, L.top, L.z), j = new THREE.Vector3(L.lat, L.joint + lift * 0.5, jointZ), f = new THREE.Vector3(L.lat, L.foot + lift, footZ);
+  aim(s.A[`${L.key}U`], a, j); const e = a.add(j.sub(a).normalize().multiplyScalar(L.top - L.joint)); aim(s.A[`${L.key}L`], e, f);
+  L.hoof.position.copy(e.add(f.sub(e).normalize().multiplyScalar(L.joint - L.foot)));
+}
+
+const HORSE = {
+  kind: "horse", coat: "#6a3f26", points: "#221812", hair: "#1c1410", mane: 0.13, forelock: true, eye: 0.022, ear: [0.032, 0.12],
+  // rump to chest: [z, top, bottom, half width]
+  body: [[-0.8, 1.16, 1.0, 0.06], [-0.76, 1.24, 0.86, 0.17], [-0.62, 1.3, 0.74, 0.23], [-0.4, 1.31, 0.7, 0.26], [-0.15, 1.25, 0.66, 0.27], [0.12, 1.26, 0.67, 0.27], [0.36, 1.33, 0.71, 0.25], [0.52, 1.3, 0.78, 0.21], [0.62, 1.18, 0.86, 0.15], [0.67, 1.06, 0.94, 0.06]],
+  neckBase: [0, 1.06, 0.46], neckSeg: 0.36, neckRings: [[0, 0.15, 0.25], [0.2, 0.125, 0.2], [0.4, 0.1, 0.15], [0.6, 0.083, 0.12], [0.72, 0.078, 0.11]],
+  // [key, z, lateral, top, knee or hock, fetlock, upper r, joint r, lower r]
+  legs: [["lf", 0.44, -0.13, 0.98, 0.48, 0.13, 0.11, 0.06, 0.044], ["rf", 0.44, 0.13, 0.98, 0.48, 0.13, 0.11, 0.06, 0.044], ["lh", -0.55, -0.14, 1.02, 0.52, 0.13, 0.135, 0.062, 0.045], ["rh", -0.55, 0.14, 1.02, 0.52, 0.13, 0.135, 0.062, 0.045]],
+  head: [0.56, 0.125, 0.07, 0.62, 0.25], tailRoot: [0, 1.2, -0.8],
+};
+const DOG = {
+  kind: "dog", coat: "#9a7a55", points: "#7a5e40", hair: "#6e5538", mane: 0, forelock: false, eye: 0.009, ear: [0.025, 0.07],
+  body: [[-0.32, 0.47, 0.38, 0.03], [-0.29, 0.52, 0.33, 0.09], [-0.18, 0.53, 0.33, 0.1], [-0.02, 0.52, 0.34, 0.1], [0.14, 0.54, 0.3, 0.11], [0.26, 0.55, 0.32, 0.1], [0.33, 0.5, 0.36, 0.06]],
+  neckBase: [0, 0.46, 0.25], neckSeg: 0.08, neckRings: [[0, 0.07, 0.09], [0.08, 0.06, 0.07], [0.16, 0.05, 0.06]],
+  legs: [["lf", 0.22, -0.06, 0.42, 0.22, 0.03, 0.04, 0.025, 0.02], ["rf", 0.22, 0.06, 0.42, 0.22, 0.03, 0.04, 0.025, 0.02], ["lh", -0.24, -0.065, 0.44, 0.2, 0.03, 0.05, 0.026, 0.02], ["rh", -0.24, 0.065, 0.44, 0.2, 0.03, 0.05, 0.026, 0.02]],
+  head: [0.22, 0.07, 0.03, 0.85, 0.2], tailRoot: [0, 0.5, -0.3],
+};
+
 // ---------------- props ----------------
 function disc(color) {
   const g = new THREE.Group();
@@ -412,45 +539,28 @@ const ACTORS = {
     } },
   // a groom holding a grazing horse
   horse: { period: 5, build(g) {
-      const coat = plain("#7d5236", 0.75), dark = plain("#3b2a1e", 0.85), hoof = plain("#2a221c", 0.6);
-      const h = { body: new THREE.Group(), legs: [], neck: mesh(limb(0.17, 0.1, 1), coat, g), mane: mesh(limb(0.045, 0.03, 1), dark, g), head: new THREE.Group(), tail: mesh(limb(0.07, 0.03, 0.7), dark, g) };
-      g.add(h.body); h.body.position.set(0, 1.2, 0);
-      // one smooth body from rump to chest, turned on a lathe along the horse's length
-      mesh(geo("horseBody", () => new THREE.LatheGeometry([[0.001, -0.82], [0.17, -0.78], [0.28, -0.6], [0.31, -0.3], [0.33, 0], [0.32, 0.3], [0.29, 0.56], [0.2, 0.74], [0.001, 0.8]].map(([r, y]) => new THREE.Vector2(r, y)), 20).rotateX(Math.PI / 2).scale(0.82, 1, 1)), coat, h.body);
-      for (const [z, lat, hind] of [[-0.52, -0.15, 1], [-0.42, 0.15, 1], [0.42, -0.15, 0], [0.52, 0.15, 0]]) { const up = mesh(limb(hind ? 0.12 : 0.1, 0.06, 0.55), coat, g), lo = mesh(limb(0.05, 0.042, 0.5), coat, g), hf = mesh(limb(0.05, 0.062, 0.08), hoof, g); h.legs.push({ z, lat, hind, up, lo, hf }); }
-      mesh(geo("hhead", () => new THREE.CylinderGeometry(0.06, 0.11, 0.42, 12).rotateX(Math.PI / 2).translate(0, -0.02, 0.2)), coat, h.head);
-      mesh(ball(0.105), coat, h.head).scale.set(0.9, 1.05, 1); // jowl
-      mesh(ball(0.065), coat, h.head).position.set(0, -0.04, 0.4); // muzzle
-      for (const sd of [1, -1]) mesh(ball(0.012), plain("#1d1612", 0.3), h.head, false).position.set(sd * 0.075, 0.03, 0.06);
-      for (const sd of [1, -1]) mesh(geo("ear", () => new THREE.ConeGeometry(0.03, 0.1, 6)), coat, h.head).position.set(sd * 0.06, 0.1, -0.04);
-      g.add(h.head);
-      const groom = new Person(outfits.groom); groom.g.position.set(0.75, 0, 1.15); groom.g.rotation.y = -Math.PI / 2 + 0.2; g.add(groom.g);
+      const h = buildQuad(g, HORSE);
+      const groom = new Person(outfits.groom); groom.g.position.set(0.75, 0, 1.25); groom.g.rotation.y = -Math.PI / 2 + 0.2; g.add(groom.g);
       const rope = mesh(stickGeo(0.008), plain("#6b4a2c", 0.9), g);
       return { h, groom, rope }; },
     frame(s, ph) {
-      const gz = (1 - Math.cos(ph * TAU)) / 2, tail = Math.sin(ph * TAU * 2) * 0.15, h = s.h;
-      for (const L of h.legs) { const top = new THREE.Vector3(L.lat, 1.12, L.z), knee = new THREE.Vector3(L.lat, 0.56, L.z + (L.hind ? -0.12 : 0.03)), foot = new THREE.Vector3(L.lat, 0.08, L.z); aim(L.up, top, knee); aim(L.lo, knee, foot); L.hf.position.copy(foot); }
-      const withers = new THREE.Vector3(0, 1.36, 0.5), poll = new THREE.Vector3(0, lerp(1.78, 0.5, gz), lerp(0.98, 1.05, gz));
-      s.h.neck.scale.set(1, withers.distanceTo(poll), 1); aim(s.h.neck, withers, poll); s.h.mane.scale.set(1, withers.distanceTo(poll), 1); aim(s.h.mane, withers.clone().add(new THREE.Vector3(0, 0.08, -0.03)), poll.clone().add(new THREE.Vector3(0, 0.08, -0.03)));
-      h.head.position.copy(poll); h.head.rotation.set(lerp(0.75, 1.35, gz), 0, 0);
-      aim(h.tail, new THREE.Vector3(0, 1.3, -0.78), new THREE.Vector3(tail * 0.6, 0.62, -0.92 + Math.abs(tail) * 0.2));
+      const gz = (1 - Math.cos(ph * TAU)) / 2, h = s.h, shift = Math.sin(ph * TAU) * 0.015;
+      for (const L of h.legs) poseLeg(h, L, L.z + (L.hind ? -0.1 : 0.02) + shift, L.z + shift * 0.5);
+      poseNeck(h, new THREE.Vector3(0, lerp(1.72, 0.55, gz), lerp(1.0, 1.08, gz)), lerp(0.85, 1.45, gz));
+      h.tail.rotation.set(0.25 + Math.abs(Math.sin(ph * TAU * 3)) * 0.1, Math.sin(ph * TAU * 2) * 0.35, 0);
       s.groom.setPose(pose(outfits.groom, { frontArm: { el: [0.4, -2.3], hand: [0.75, -1.95 + gz * 0.25] } }));
       s.groom.g.updateMatrix(); const hand = s.groom.hands.front.clone().applyMatrix4(s.groom.g.matrix);
-      h.head.updateMatrix(); const muzzle = new THREE.Vector3(0, -0.02, 0.4).applyMatrix4(h.head.matrix);
+      h.head.updateMatrix(); const muzzle = new THREE.Vector3(0, -0.04, HORSE.head[0] * 0.92).applyMatrix4(h.head.matrix);
       stick(s.rope, hand, muzzle);
     } },
   // a dog trotting around the camp (the main loop moves it)
-  dog: { period: 0.55, build(g) {
-      const fur = plain("#9b7a52", 0.85), dark = plain("#6e5538", 0.85);
-      const d = { body: mesh(ball(1), fur, g), head: mesh(ball(1), fur, g), snout: mesh(limb(0.035, 0.028, 0.12), fur, g), tail: mesh(limb(0.025, 0.012, 0.22), dark, g), legs: [] };
-      d.body.scale.set(0.14, 0.15, 0.32); d.body.position.set(0, 0.42, 0);
-      d.head.scale.set(0.1, 0.1, 0.115); d.head.position.set(0, 0.56, 0.34); d.snout.position.set(0, 0.53, 0.4); d.snout.rotation.x = -Math.PI / 2;
-      for (const sd of [1, -1]) mesh(geo("dogear", () => new THREE.ConeGeometry(0.03, 0.08, 5)), dark, g).position.set(sd * 0.045, 0.64, 0.3);
-      for (const [z, lat, off] of [[-0.2, -0.07, 0], [-0.2, 0.07, 0.5], [0.2, -0.07, 0.25], [0.2, 0.07, 0.75]]) d.legs.push({ z, lat, off, up: mesh(limb(0.042, 0.032, 0.2), fur, g), lo: mesh(limb(0.03, 0.026, 0.2), fur, g) });
-      return d; },
+  dog: { period: 0.55, build(g) { return buildQuad(g, DOG); },
     frame(d, ph) {
-      for (const L of d.legs) { const q = Math.sin((ph + L.off) * TAU), top = new THREE.Vector3(L.lat, 0.38, L.z), knee = new THREE.Vector3(L.lat, 0.2, L.z + q * 0.05), foot = new THREE.Vector3(L.lat, 0.02 + Math.max(0, q) * 0.04, L.z + q * 0.09); aim(L.up, top, knee); aim(L.lo, knee, foot); }
-      aim(d.tail, new THREE.Vector3(0, 0.46, -0.28), new THREE.Vector3(Math.sin(ph * TAU * 2) * 0.08, 0.6, -0.42));
+      // trot: diagonal legs move together
+      const off = { lf: 0, rh: 0, rf: 0.5, lh: 0.5 };
+      for (const L of d.legs) { const q = Math.sin((ph + off[L.key]) * TAU), lift = Math.max(0, Math.cos((ph + off[L.key]) * TAU)) * 0.05; poseLeg(d, L, L.z + q * 0.04 + (L.hind ? -0.05 : 0.02), L.z + q * 0.08, lift); }
+      poseNeck(d, new THREE.Vector3(0, 0.66 + Math.sin(ph * TAU * 2) * 0.01, 0.36), 0.35);
+      d.tail.rotation.set(0, Math.sin(ph * TAU * 2) * 0.2, 0);
     } },
 };
 
