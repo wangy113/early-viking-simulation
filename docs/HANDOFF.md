@@ -1,7 +1,7 @@
 # HANDOFF: Gokstad Ship Explorer (3D Viking ship for online students)
 
 > Purpose: let a cold agent (no memory of prior sessions) take this proof of concept to a real production environment from this file alone.
-> Last updated: 2026-10-08
+> Last updated: 2026-10-08 (production repo set up, visual direction changed to near-realistic)
 
 ## 1. Task & goal
 
@@ -19,7 +19,7 @@ A working single-file proof of concept exists. The production job is to harden i
 ## 2. Conventions & rules
 
 - **This is a web app, not a video.** Use Three.js directly. Do **not** use HyperFrames. It is an HTML-to-MP4 video tool, and the user and I settled this.
-- **Visual style is fixed: storybook pencil and watercolour on paper.** Everything is painted in code with the seeded `Painter` class: washes, granulation, pencil outlines and a paper-grain overlay. The user liked this look in an earlier tabernacle test and chose it. Keep it. Do not switch to realistic PBR, photo textures or stock 3D models without asking.
+- **Visual style: near-realistic (changed by the user on 2026-10-08).** The user shared a game-engine reference render and asked for depth and an almost realistic look. The watercolour `Painter` style is being replaced by PBR materials with CC0 photo-scanned textures (Poly Haven, ambientCG), HDRI lighting, sun shadows and an ocean shader. People and animals become 3D figures built in code, with simple faces. The proof of concept stays in the first commit on `main`.
 - **Every stop carries evidence tags:** `Found with this ship` (from the Gokstad mound), `Known from other finds` (other Viking Age evidence) and `Reconstruction` (informed guess). Never present a reconstruction as a find.
 - **Only state verified facts.** These claims were checked against sources and are safe:
   - length about 23.3 m (sources range 23.2 to 23.8) and beam about 5.2 m
@@ -59,7 +59,8 @@ A working single-file proof of concept exists. The production job is to harden i
 - **User's Learning Studio skill** (pedagogy and design pass for teaching sites): `C:\Users\WangJ\.claude\skills\learning-studio\`
 - **MBU Canvas CLI and gotchas:** see the memory note `mbu-canvas-cli.md` in `C:\Users\WangJ\.claude\projects\C--Users-WangJ\memory\`
 - **Headless Chrome used for screenshots:** `C:\Users\WangJ\.cache\hyperframes\chrome\chrome-headless-shell\win64-152.0.7977.30\chrome-headless-shell-win64\chrome-headless-shell.exe`
-- **Production repo:** not created yet (see Next steps).
+- **Production repo:** https://github.com/wangy113/early-viking-simulation (public). Live site: https://wangy113.github.io/early-viking-simulation/
+- **Repo layout and commands:** see `CLAUDE.md` at the repo root. Stop text is in `src/content/stops.json`.
 
 ### Map of `index.html` (line numbers as of 2026-10-08)
 
@@ -96,9 +97,11 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 | PoC stops | 12 tagged stops with notice prompts, Text version, About and sources | ✅ done | ⚠️ content needs SME review |
 | PoC controls | drag-look, click-to-walk, arrow pad, keys, Board or Step ashore, Bird's-eye view, Guide me, Raise the sail, deep links | ✅ done | not tested on touch devices |
 | History check | SME and primary-source review of all 12 stops and the About page | ⚠️ needs review | key facts web-checked on 2026-10-08, see section 2 |
-| Repo + hosting | GitHub repo, Pages, custom path | ⬜ not started | |
-| Code split | split the single file into modules, pin Three.js locally | ⬜ not started | |
-| Baked textures | paint textures and atlases once to PNG/WebP and load them | ⬜ not started | faster start, smaller CPU cost on Chromebooks |
+| Repo + hosting | GitHub repo, Pages, custom path | ⏳ in progress | PoC on `main`. The user must set Settings, Pages, Source to GitHub Actions |
+| Code split | split the single file into modules, pin Three.js locally | ✅ done | Vite, three 0.181.2 and fonts bundled, stops.json, style lint, Playwright tests, CI. Scene pixel-matches the PoC |
+| Baked textures | paint textures and atlases once to PNG/WebP and load them | dropped | replaced by CC0 photo-scanned PBR textures (realistic direction) |
+| Realistic look test | ship, beach, sea, sky with PBR, HDRI, shadows, Water | ⬜ not started | key approval gate before converting the rest |
+| 3D people | code-built skinned figures with the 11 task loops | ⬜ not started | |
 | Performance | profile, merge geometry, cap DPR, target 30+ fps on a Chromebook and 60 on a laptop | ⬜ not started | |
 | Mobile/touch | tap-to-walk, pinch, layout of the top bar and panel on phones | ⬜ not started | the top bar wraps on narrow screens and needs a menu |
 | Accessibility audit | WCAG 2.1 AA and QM 8: keyboard path to every stop, focus trap in modals, screen-reader test with NVDA, contrast, captions if audio is added | ⬜ not started | the Text version exists, but focus trapping is not implemented |
@@ -149,17 +152,15 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 ## 7. Open questions & decisions
 
 **Awaiting the user:**
-- Which course and module is this for, and what is the learning objective?
+- Which course and module is this for? For now the Canvas piece is a general exploration activity with no course attached.
 - How long should a visit take (a short activity or a 30-minute lab)?
-- Should there be narration audio? If so, captions are required.
-- Where should the repo live: the user's personal GitHub or an MBU organization account?
+- Narration audio: not now, may be added later. If added, captions are required.
 - Should the figures get richer animation (more poses, front and back views), or is the flat paper-theatre cutout look acceptable?
-- Should more stops be added, such as the burial chamber, the sledge, or how the ship was found?
 
 **Decided (do not relitigate):**
 - Three.js web app, not HyperFrames, not video.
 - The audience is online students, not the user's YouTube channel. The user said so explicitly.
-- Storybook watercolour style.
+- Near-realistic style (changed from storybook watercolour by the user on 2026-10-08).
 - A living scene with people and artifacts, not an empty boat.
 - The ship is the Gokstad ship specifically.
 - Evidence tags on every stop.
@@ -184,3 +185,9 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - The user explored Three.js and first asked about HyperFrames. We decided a plain Three.js web app is right for an interactive student experience.
 - The user chose the ship idea from a list of Viking ideas, then clarified that it must be alive like the tabernacle test, with people working and artifacts.
 - Built `index.html` with 11 animated figures and 12 evidence-tagged stops. Did two rounds of screenshot review and fixes, verified key facts by web search, and wrote this handoff for a production build in a real environment.
+
+## 2026-10-08: Production repo, scaffold and new visual direction
+- Repo: `wangy113/early-viking-simulation`. The PoC was committed unchanged as the first commit on `main`, with a Pages workflow.
+- Decisions: keep the 12 stops, no audio for now, no course yet (general exploration activity), realistic look replaces watercolour, people are code-built 3D figures, textures are CC0 photo scans.
+- M1 scaffold: Vite, modules under `src/`, bundled Three.js and fonts (no third-party requests), `stops.json`, style lint, Playwright tests and CI. The 3D scene pixel-matched the PoC.
+- Headless screenshots in the cloud container need `--use-gl=angle --use-angle=swiftshader-webgl --enable-unsafe-swiftshader --disable-gpu-rasterization`. Without the last flag the painter takes minutes and the page looks hung.
