@@ -37,11 +37,14 @@ const tillerEnd = rudder.localToWorld(v3(-1.22, 0.15, 0)), steerZ = tillerEnd.z 
 addActor("steer", "steer", 15, v3(tillerEnd.x - 0.1, H.deckY(steerZ / SHIP.Lh) + 0.02, steerZ), { face: rudderPivot });
 addActor("rope", "rope", 16, v3(0.45, deck0 + 0.02, mastZ + 0.3), { face: v3(0, deck0 + 3, mastZ) });
 addActor("chest", "chest", 17, onGround(hullOut(0.32, 0.6, -1, 1.15)), { face: H.pt(0.32, 1, -1), deckLift: H.deckY(0.32) + 0.02 });
-// stand the man on deck on the planks under his feet
+// stand the man on deck on the deck planking under his feet
 {
   const b = cast.chest.state.b.g; cast.chest.update(0); cast.chest.mesh.updateMatrixWorld(true);
   const w = b.getWorldPosition(new THREE.Vector3()); ray.set(new THREE.Vector3(w.x, 6, w.z), new THREE.Vector3(0, -1, 0)); ray.far = 8;
-  const hit = ray.intersectObjects(solids, false)[0]; if (hit) b.position.y = hit.point.y + 0.01;
+  // the deck is the long walking surface, not a chest or bench on it
+  const long = (m) => { m.geometry.computeBoundingBox(); const bb = m.geometry.boundingBox; return bb.max.z - bb.min.z > 10; };
+  const hit = ray.intersectObjects(solids, false).find((h) => long(h.object) && h.face && h.face.normal.y > 0.5);
+  b.position.y = (hit ? hit.point.y : H.deckY(w.z / SHIP.Lh)) + 0.01;
 }
 addActor("game", "game", 18, v3(-8.2, 0, 2.2));
 addActor("cook", "cook", 19, v3(-9.6, 0, -2.6), { face: v3(-8.9, 0, -2.6) });

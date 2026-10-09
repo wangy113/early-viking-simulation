@@ -337,7 +337,9 @@ const ACTORS = {
       // The man on deck waits with his hands on the gunwale, then takes the top of the chest.
       const up = (1 - Math.cos(ph * TAU)) / 2, cy = lerp(1.25, s.rail - 0.36, up);
       const c = V(0, cy, Math.min(2.2 * CUB, Math.min(s.reach(cy - 0.17), s.reach(cy + 0.17)) - 0.22)); // clear of the planks
-      const below = (sd) => inP(s.a, V(sd * 0.16, c.y - 0.13, c.z - 0.08));
+      // hands grip both sides of the chest while it is low, and push from underneath once it is overhead
+      const lift = THREE.MathUtils.smoothstep(c.y, 1.55, 1.95);
+      const below = (sd) => inP(s.a, V(sd * 0.2, c.y - 0.04, c.z - 0.1).lerp(V(sd * 0.15, c.y - 0.15, c.z - 0.07), lift));
       const onRail = (sd) => V(sd * 0.22, s.rail + 0.03, s.reach(s.rail - 0.05) + 0.06), onChest = (sd) => V(sd * 0.17, c.y + 0.19, c.z + 0.21);
       const above = (sd) => inP(s.b, onRail(sd).lerp(onChest(sd), THREE.MathUtils.smoothstep(up, 0.7, 0.95)));
       s.a.setPose(pose(outfits.chest1, { lean: 0.02, backArm: { local: below(-1) }, frontArm: { local: below(1) } }));
@@ -347,9 +349,9 @@ const ACTORS = {
   // two players at a gaming board set on a chest
   game: { period: 3.2, build(g) {
       const a = new Human(outfits.game1), b = new Human(outfits.game2);
-      a.g.position.copy(P2(0.9, 0)); b.g.position.copy(P2(3.3, 0)); b.g.rotation.y = Math.PI; g.add(a.g, b.g);
+      a.g.position.copy(P2(0.6, 0)); b.g.position.copy(P2(3.6, 0)); b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const seat = mat("seat", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xb38a62 }));
-      for (const z of [0.85, 3.35]) box(0.36, 0.44, 0.3, seat, g).position.set(0, 0.22, z * CUB);
+      for (const z of [0.55, 3.65]) box(0.36, 0.44, 0.3, seat, g).position.set(0, 0.22, z * CUB);
       box(0.34, 0.44, 0.4, seat, g).position.set(0, 0.22, 2.1 * CUB);
       box(0.46, 0.04, 0.46, woodMat(), g).position.set(0, 0.46, 2.1 * CUB);
       // horn playing pieces, light and dark
@@ -358,8 +360,8 @@ const ACTORS = {
     frame(s, ph) {
       const reach = ph < 0.4 ? Math.sin((ph / 0.4) * Math.PI) : 0, think = Math.sin(ph * TAU) * 0.03;
       // one player moves a piece on the board, the other rests his chin on his hand and thinks
-      const seat = (o, front) => pose(o, { hip: [0, -1.05], sh: [0.15, -2.15], headY: think, backLeg: { knee: [0.55, -1.1], foot: [0.6, 0] }, frontLeg: { knee: [0.6, -1.05], foot: [0.7, 0] }, backArm: { local: V(-0.11, 0.63, 0.24) }, frontArm: front });
-      const lap = V(0.11, 0.63, 0.24), piece = V(0.04, 0.52, 2.1 * CUB - 0.9 * CUB - 0.15);
+      const seat = (o, front) => pose(o, { hip: [0, -1.05], sh: [0.15, -2.15], headY: think, backLeg: { knee: [0.9, -0.98], foot: [0.95, 0] }, frontLeg: { knee: [0.95, -0.96], foot: [1.02, 0] }, backArm: { local: V(-0.11, 0.6, 0.3) }, frontArm: front });
+      const lap = V(0.11, 0.6, 0.3), piece = V(0.04, 0.52, 2.1 * CUB - 0.6 * CUB - 0.15);
       s.a.setPose(seat(outfits.game1, { local: lap.clone().lerp(piece, reach).add(V(0, reach * (1 - reach) * 0.25, 0)) }));
       s.b.setPose(seat(outfits.game2, { head: V(0, -0.11, 0.1 + think), pole: V(0.15, 0.62, 0.3) }));
     } },
