@@ -30,3 +30,18 @@ export const hullCheck = () => {
   }
   return out;
 };
+
+// Plays every task loop and reports hands that end more than `tol` meters from their grip point.
+export const gripCheck = (tol = 0.03) => {
+  const out = [];
+  for (const [name, a] of Object.entries(window.__cast)) {
+    const people = []; a.mesh.traverse((o) => { if (o.userData?.human) people.push(o.userData.human); });
+    const worst = {};
+    for (let i = 0; i < 24; i++) {
+      a.update((i / 24) * a.period);
+      people.forEach((h, k) => { for (const side of ["back", "front"]) { const key = `${k}:${side}`; worst[key] = Math.max(worst[key] || 0, h.miss[side]); } });
+    }
+    for (const [key, m] of Object.entries(worst)) if (m > tol) out.push(`${name} ${key} ${m.toFixed(3)}`);
+  }
+  return out;
+};

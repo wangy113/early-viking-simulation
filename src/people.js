@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { TAU, lerp, CUB, rngFrom } from "./util.js";
 import { pbr } from "./textures.js";
 import { Human } from "./humans.js";
+import { rudder } from "./ship.js";
 
 // People and animals as jointed 3D figures. Poses come from the proof of concept's side-view
 // pose functions, in cubits with x forward and y up negative. Each figure maps them to its own
@@ -254,71 +255,89 @@ const P2 = (x, y, lat = 0) => new THREE.Vector3(lat, -y * CUB, x * CUB);
 
 // ---------------- the cast: one definition per task loop ----------------
 // build(group) returns state, frame(state, ph) poses it for phase ph in [0, 1)
+// Contact points. Hands that hold something get an exact grip point in 3D, in meters, in the
+// person's own frame (+z forward, +x to the figure's left). Arms that hold nothing hang loose.
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const inP = (p, pt) => { p.g.updateMatrix(); return pt.clone().applyMatrix4(p.g.matrix.clone().invert()); };
+const loose = (p, side, swing = 0) => ({ local: V(side * 0.24, p.hipY + 0.01, 0.05 + swing) });
+
 const ACTORS = {
-  // shipwright clenching a rivet: hammer up, strike
-  wright: { period: 0.9, build(g) { const p = new Human(outfits.wright); g.add(p.g); const handle = mesh(stickGeo(0.016), woodMat(), g), head = box(0.05, 0.05, 0.12, plain(C.iron, 0.5, 0.7), g); return { p, handle, head }; },
+  // shipwright clenching a rivet: one hand holds the rivet head on the planks, the other swings the hammer
+  wright: { period: 0.9, build(g, opts) { const p = new Human(outfits.wright); g.add(p.g); const handle = mesh(stickGeo(0.016), woodMat(), g), head = box(0.05, 0.05, 0.12, plain(C.iron, 0.5, 0.7), g); return { p, handle, head, reach: opts.reach || (() => 0.62) }; },
     frame(s, ph) {
       const up = ph < 0.6 ? Math.sin((ph / 0.6) * Math.PI / 2) : 1 - (ph - 0.6) / 0.4;
-      const hand = [lerp(0.85, 0.62, up), lerp(-2.7, -3.35, up)];
-      s.p.setPose(pose(outfits.wright, { lean: 0.12, backArm: { el: [0.45, -2.45], hand: [0.95, -2.5] }, frontArm: { el: [0.45, -2.7 - up * 0.12], hand } }));
-      const a = Math.atan2(-1, 0) + (1 - up) * 1.2 - 0.4, h = s.p.hands.front, tip = h.clone().add(new THREE.Vector3(0, -Math.sin(a) * 0.55 * CUB, Math.cos(a) * 0.55 * CUB));
-      stick(s.handle, h, tip); s.head.position.copy(tip); s.head.quaternion.copy(s.handle.quaternion);
+      const rivet = V(0.08, 1.2, s.reach(1.2) - 0.03), ang = up * 1.3, dir = V(0, Math.sin(ang), Math.cos(ang)), L = 0.27;
+      const grip = rivet.clone().addScaledVector(dir, -L).add(V(0, up * 0.08, -up * 0.1));
+      s.p.setPose(pose(outfits.wright, { lean: 0.03, backArm: { local: V(-0.1, 1.15, s.reach(1.15) - 0.05) }, frontArm: { local: grip, pole: V(0.35, 0.95, -0.1) } }));
+      const tip = s.p.hands.front.clone().addScaledVector(dir, L);
+      stick(s.handle, s.p.hands.front, tip); s.head.position.copy(tip); s.head.quaternion.copy(s.handle.quaternion);
     } },
-  // caulker kneeling, pushing tarred wool into a seam
-  caulk: { period: 1.4, build(g) {
+  // caulker kneeling, pushing tarred wool into a seam with an iron held in both hands
+  caulk: { period: 1.4, build(g, opts) {
       const p = new Human(outfits.caulk); g.add(p.g);
       const pot = mesh(lathe("tarpot", [[0.001, 0], [0.12, 0], [0.13, 0.2], [0.11, 0.27], [0.001, 0.25]]), plain("#2b231d", 0.6), g); pot.position.copy(P2(-1.1, 0)); pot.position.x = -0.15;
-      const iron = mesh(stickGeo(0.012), plain(C.iron, 0.5, 0.7), g); return { p, iron }; },
+      const iron = mesh(stickGeo(0.012), plain(C.iron, 0.5, 0.7), g); return { p, iron, reach: opts.reach || (() => 0.62) }; },
     frame(s, ph) {
-      const push = (1 - Math.cos(ph * TAU)) / 2, tool = [lerp(0.95, 1.15, push), -1.75];
-      s.p.setPose(pose(outfits.caulk, { hip: [0, -1.05], sh: [0.35, -2.05], backLeg: { knee: [-0.45, -0.15], foot: [-1.0, -0.06] }, frontLeg: { knee: [0.5, -1.05], foot: [0.45, 0] }, backArm: { el: [0.6, -1.6], hand: [tool[0] - 0.15, tool[1] + 0.05] }, frontArm: { el: [0.65, -1.85], hand: [tool[0] - 0.25, tool[1] - 0.05] } }));
-      stick(s.iron, P2(tool[0] - 0.35, tool[1]), P2(tool[0] + 0.05, tool[1]));
+      const push = (1 - Math.cos(ph * TAU)) / 2, y = 0.8, tipZ = s.reach(y) - 0.005 - (1 - push) * 0.025;
+      s.p.setPose(pose(outfits.caulk, { hip: [0, -1.05], sh: [0.22, -2.1], backLeg: { knee: [-0.45, -0.15], foot: [-1.0, -0.06] }, frontLeg: { knee: [0.5, -1.05], foot: [0.45, 0] },
+        backArm: { local: V(-0.02, y, tipZ - 0.36), pole: V(-0.4, 0.55, tipZ - 0.6) }, frontArm: { local: V(0.02, y, tipZ - 0.27), pole: V(0.4, 0.55, tipZ - 0.5) } }));
+      stick(s.iron, V(0, y, tipZ - 0.42), V(0, y, tipZ));
     } },
   // two crew carrying an oar on their shoulders (the main loop walks this group up and down the beach)
   oars: { period: 1.1, build(g) {
       const a = new Human(outfits.oar2), b = new Human(outfits.oar1); a.g.position.copy(P2(2.3, 0)); b.g.position.copy(P2(6.6, 0)); g.add(a.g, b.g);
       const oar = mesh(stickGeo(0.03), woodMat(), g), blade = box(0.02, 0.13, 0.62, woodMat(), g); return { a, b, oar, blade }; },
     frame(s, ph) {
-      // the oar rests on the carriers' shoulders, wherever their bodies put them
-      const top = ((s.a.shoulderY || 3.05 * CUB) + (s.b.shoulderY || 3.05 * CUB)) / 2 / CUB;
-      const oarY = -top + Math.sin(ph * 2 * TAU) * 0.03;
-      s.a.setPose(walkPose(outfits.oar2, (ph + 0.25) % 1, 1.4, { frontArm: { el: [0.35, oarY + 0.45], hand: [0.25, oarY - 0.07] }, backArm: { el: [-0.25, oarY + 0.45], hand: [-0.15, oarY - 0.05] } }));
-      s.b.setPose(walkPose(outfits.oar1, ph, 1.4, { frontArm: { el: [0.3, oarY + 0.45], hand: [0.2, oarY - 0.05] }, backArm: { el: [-0.3, oarY + 0.45], hand: [-0.2, oarY - 0.03] } }));
-      const tail = P2(0.3, oarY + 0.05, 0.2), tip = P2(8.6, oarY - 0.05, 0.2); stick(s.oar, tail, tip);
-      s.blade.position.copy(P2(0.85, oarY + 0.03, 0.2)); s.blade.quaternion.copy(s.oar.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2));
+      // the oar rests on both carriers' left shoulders. One hand steadies it, the other swings.
+      const y = (s.a.shoulderY + s.b.shoulderY) / 2 + 0.015 + Math.sin(ph * 2 * TAU) * 0.012, lat = 0.19;
+      for (const [p, o, q] of [[s.a, outfits.oar2, (ph + 0.25) % 1], [s.b, outfits.oar1, ph]]) {
+        const z = p.g.position.z + 0.24, swing = Math.sin(q * TAU) * 0.1;
+        p.setPose(walkPose(o, q, 1.4, { frontArm: { local: inP(p, V(lat, y - 0.035, z)), pole: V(0.45, 1.05, 0.05) }, backArm: loose(p, -1, swing) }));
+      }
+      stick(s.oar, V(lat, y + 0.01, 0.14), V(lat, y - 0.02, 3.96));
+      s.blade.position.set(lat, y - 0.015, 0.4); s.blade.quaternion.copy(s.oar.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2));
     } },
   // crewman on deck lifting a shield onto the rail
   shield: { period: 2.4, build(g) { const p = new Human(outfits.shield); g.add(p.g); const sh = disc(C.shieldY); g.add(sh); return { p, sh }; },
     frame(s, ph) {
-      const up = (1 - Math.cos(ph * TAU)) / 2, hand = [lerp(0.55, 0.9, up), lerp(-2.0, -3.0, up)];
-      s.p.setPose(pose(outfits.shield, { lean: 0.05 + up * 0.08, backArm: { el: [0.25, -2.45 - up * 0.3], hand: [hand[0] - 0.1, hand[1] + 0.25] }, frontArm: { el: [0.4, -2.35 - up * 0.3], hand: [hand[0] + 0.05, hand[1] - 0.15] } }));
-      s.sh.position.copy(P2(hand[0] + 0.35, hand[1]));
+      // both hands hold the lower rim of the shield as he lifts it toward the rail
+      const up = (1 - Math.cos(ph * TAU)) / 2, c = V(0, lerp(1.15, 1.45, up), lerp(0.36, 0.45, up));
+      s.p.setPose(pose(outfits.shield, { lean: 0.05 + up * 0.08, backArm: { local: V(-0.3, c.y - 0.3, c.z - 0.03) }, frontArm: { local: V(0.3, c.y - 0.3, c.z - 0.03) } }));
+      s.sh.position.copy(c);
     } },
   // steersman with a hand toward the tiller, looking out
   steer: { period: 4, build(g) { const p = new Human(outfits.steer); g.add(p.g); return { p }; },
     frame(s, ph) {
+      // one hand on the end of the tiller, the other shading the eyes
       const sway = Math.sin(ph * TAU);
-      s.p.setPose(pose(outfits.steer, { lean: 0.05 * sway, headX: 0.03 * sway, frontArm: { el: [0.45, -2.3], hand: [0.85, -2.0 + sway * 0.04] }, backArm: { el: [0.3, -2.9], hand: [0.25, -3.45] } }));
+      s.p.g.updateWorldMatrix(true, false);
+      const tiller = s.p.g.worldToLocal(rudder.localToWorld(V(-1.22, 0.15, 0)));
+      s.p.setPose(pose(outfits.steer, { lean: 0.05 * sway, headX: 0.03 * sway, frontArm: { local: tiller }, backArm: { head: V(-0.03, 0.1, 0.15), pole: V(-0.45, 1.3, 0.1) } }));
     } },
   // crewman hauling on the halyard at the mast
-  rope: { period: 1.6, build(g) { const p = new Human(outfits.rope); g.add(p.g); const up = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g), down = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g); return { p, up, down }; },
+  rope: { period: 1.6, build(g) {
+      const p = new Human(outfits.rope); g.add(p.g);
+      // the halyard runs from the masthead down to the deck, in front of him
+      const top = V(0, 10.4, 0.5), foot = V(-0.06, 0.02, 0.32), rope = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g); stick(rope, foot, top);
+      return { p, at: (y) => foot.clone().lerp(top, (y - foot.y) / (top.y - foot.y)) }; },
     frame(s, ph) {
-      const a = Math.sin(ph * TAU), b = Math.sin(ph * TAU + Math.PI);
-      s.p.setPose(pose(outfits.rope, { lean: -0.12, backArm: { el: [0.3, -2.8], hand: [0.45, -3.2 + a * 0.45] }, frontArm: { el: [0.32, -2.75], hand: [0.45, -3.2 + b * 0.45] } }));
-      const top = s.p.hands.back.y > s.p.hands.front.y ? s.p.hands.back : s.p.hands.front, low = top === s.p.hands.back ? s.p.hands.front : s.p.hands.back;
-      stick(s.up, top, new THREE.Vector3(0, 10.4, 0.5)); stick(s.down, low, new THREE.Vector3(-0.25, 0.02, 0.25));
+      // hand over hand on the rope
+      const a = Math.sin(ph * TAU);
+      s.p.setPose(pose(outfits.rope, { lean: -0.12, backArm: { local: s.at(1.45 + a * 0.22) }, frontArm: { local: s.at(1.45 - a * 0.22) } }));
     } },
   // a crewman on the beach heaves a sea chest up to another leaning over the rail
   chest: { period: 2.6, build(g, opts) {
       const a = new Human(outfits.chest1), b = new Human(outfits.chest2); // b turns to face a
       a.g.position.copy(P2(1.05, 0)); b.g.position.copy(P2(3.2, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const chest = new THREE.Group(); box(0.5, 0.34, 0.36, mat("chestwood", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xd6a979 })), chest); box(0.08, 0.1, 0.02, plain(C.iron, 0.5, 0.7), chest).position.set(0, 0.08, 0.185);
-      chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest }; },
+      chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest, rail: opts.face ? opts.face.y : 2.0 }; },
     frame(s, ph) {
-      const up = (1 - Math.cos(ph * TAU)) / 2, cy = lerp(-2.6, -3.7, up);
-      s.a.setPose(pose(outfits.chest1, { lean: 0.1, backArm: { el: [0.35, cy + 0.5], hand: [0.75, cy + 0.15] }, frontArm: { el: [0.4, cy + 0.45], hand: [0.85, cy + 0.1] } }));
-      s.b.setPose(pose(outfits.chest2, { hip: [0, -1.85], sh: [0.35, -2.85], backArm: { el: [0.75, -2.3], hand: [1.15, -1.9 + (1 - up) * 0.3] }, frontArm: { el: [0.7, -2.25], hand: [1.05, -1.85 + (1 - up) * 0.3] } }));
-      s.chest.position.copy(P2(2.2, cy - 0.17));
+      // the man below holds the chest by its near end, the man on deck takes the far end at the rail
+      const up = (1 - Math.cos(ph * TAU)) / 2, c = V(0, lerp(1.2, Math.min(s.rail + 0.1, 1.9), up), 2.2 * CUB);
+      const near = (sd) => inP(s.a, V(sd * 0.19, c.y - 0.04, c.z - 0.14)), far = (sd) => inP(s.b, V(sd * 0.19, Math.max(c.y + 0.02, s.rail + 0.06), c.z + 0.14));
+      s.a.setPose(pose(outfits.chest1, { lean: 0.1, backArm: { local: near(-1) }, frontArm: { local: near(1) } }));
+      s.b.setPose(pose(outfits.chest2, { hip: [0, -1.85], sh: [0.35, -2.85], backArm: { local: far(1) }, frontArm: { local: far(-1) } }));
+      s.chest.position.copy(c);
     } },
   // two players at a gaming board set on a chest
   game: { period: 3.2, build(g) {
@@ -333,9 +352,11 @@ const ACTORS = {
       return { a, b }; },
     frame(s, ph) {
       const reach = ph < 0.4 ? Math.sin((ph / 0.4) * Math.PI) : 0, think = Math.sin(ph * TAU) * 0.03;
-      const seat = (o, arm) => pose(o, { hip: [0, -1.05], sh: [0.15, -2.15], headY: think, backLeg: { knee: [0.55, -1.1], foot: [0.6, 0] }, frontLeg: { knee: [0.6, -1.05], foot: [0.7, 0] }, backArm: { el: [0.4, -1.65], hand: [0.6, -1.45] }, frontArm: arm });
-      s.a.setPose(seat(outfits.game1, { el: [0.6, -1.85 - reach * 0.1], hand: [0.75 + reach * 0.35, -1.5 - reach * 0.1] }));
-      s.b.setPose(seat(outfits.game2, { el: [0.45, -1.8], hand: [0.55, -2.3 + think] }));
+      // one player moves a piece on the board, the other rests his chin on his hand and thinks
+      const seat = (o, front) => pose(o, { hip: [0, -1.05], sh: [0.15, -2.15], headY: think, backLeg: { knee: [0.55, -1.1], foot: [0.6, 0] }, frontLeg: { knee: [0.6, -1.05], foot: [0.7, 0] }, backArm: { local: V(-0.11, 0.63, 0.24) }, frontArm: front });
+      const lap = V(0.11, 0.63, 0.24), piece = V(0.04, 0.52, 2.1 * CUB - 0.9 * CUB - 0.12);
+      s.a.setPose(seat(outfits.game1, { local: lap.clone().lerp(piece, reach).add(V(0, reach * (1 - reach) * 0.25, 0)) }));
+      s.b.setPose(seat(outfits.game2, { head: V(0, -0.11, 0.1 + think), pole: V(0.15, 0.62, 0.3) }));
     } },
   // the cook stirring a pot that hangs from a tripod over the fire
   cook: { period: 2.2, build(g) {
@@ -346,9 +367,11 @@ const ACTORS = {
       const pot = mesh(lathe("pot", [[0.001, 0], [0.13, 0.02], [0.18, 0.12], [0.17, 0.24], [0.15, 0.25], [0.001, 0.2]]), plain("#4f4a46", 0.55, 0.4), g); pot.position.copy(P2(1.5, -0.9));
       const ladle = mesh(stickGeo(0.012), plain("#7a5532", 0.8), g); return { p, ladle }; },
     frame(s, ph) {
-      const sx = 1.45 + Math.cos(ph * TAU) * 0.15;
-      s.p.setPose(pose(outfits.cook, { lean: 0.15, hip: [0.1, -1.85], backArm: { el: [0.55, -2.4], hand: [0.85, -2.15] }, frontArm: { el: [0.6, -2.35], hand: [sx - 0.25, -2.25] } }));
-      stick(s.ladle, s.p.hands.front, P2(sx, -1.25, Math.sin(ph * TAU) * 0.05));
+      // the ladle goes round in the pot, her hand holds its top end
+      const sx = 1.45 + Math.cos(ph * TAU) * 0.15, bowl = P2(sx, -1.25, Math.sin(ph * TAU) * 0.05);
+      const grip = bowl.clone().add(V(0.04, 0.85, -0.62).normalize().multiplyScalar(0.5));
+      s.p.setPose(pose(outfits.cook, { lean: 0.15, hip: [0.1, -1.85], backArm: loose(s.p, -1), frontArm: { local: grip } }));
+      stick(s.ladle, s.p.hands.front, bowl);
     } },
   // a groom holding a grazing horse
   horse: { period: 5, build(g) {
@@ -361,7 +384,7 @@ const ACTORS = {
       for (const L of h.legs) poseLeg(h, L, L.z + (L.hind ? -0.1 : 0.02) + shift, L.z + shift * 0.5);
       poseNeck(h, new THREE.Vector3(0, lerp(1.72, 0.55, gz), lerp(1.0, 1.08, gz)), lerp(0.85, 1.45, gz));
       h.tail.rotation.set(0.25 + Math.abs(Math.sin(ph * TAU * 3)) * 0.1, Math.sin(ph * TAU * 2) * 0.35, 0);
-      s.groom.setPose(pose(outfits.groom, { frontArm: { el: [0.4, -2.3], hand: [0.75, -1.95 + gz * 0.25] } }));
+      s.groom.setPose(pose(outfits.groom, { frontArm: { local: V(0.18, 1.0 + gz * 0.12, 0.3) }, backArm: loose(s.groom, -1) }));
       s.groom.g.updateMatrix(); const hand = s.groom.hands.front.clone().applyMatrix4(s.groom.g.matrix);
       h.head.updateMatrix(); const muzzle = new THREE.Vector3(0, -0.04, HORSE.head[0] * 0.92).applyMatrix4(h.head.matrix);
       stick(s.rope, hand, muzzle);

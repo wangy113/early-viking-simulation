@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import stops from "../src/content/stops.json" with { type: "json" };
-import { hullCheck } from "./hull-check.js";
+import { hullCheck, gripCheck } from "./hull-check.js";
 
 const ready = (page) => page.waitForFunction(() => window.__ready === true, null, { timeout: 180_000, polling: 500 });
 
@@ -71,8 +71,9 @@ test("Low quality loads only the small textures", async ({ page }) => {
   expect(big).toEqual([]);
 });
 
-test("no person reaches through the hull", async ({ page }) => {
+test("no person reaches through the hull, and every hand reaches its grip", async ({ page }) => {
   await page.goto("./?quality=low&debug");
   await ready(page);
   expect(await page.evaluate(hullCheck)).toEqual([]);
+  expect(await page.evaluate(gripCheck)).toEqual([]);
 });

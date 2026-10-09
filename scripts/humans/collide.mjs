@@ -3,7 +3,7 @@
 // Run `npm run build` first. Usage: node scripts/humans/collide.mjs
 import { chromium } from "@playwright/test";
 import { preview } from "vite";
-import { hullCheck } from "../../tests/hull-check.js";
+import { hullCheck, gripCheck } from "../../tests/hull-check.js";
 const PORT = Number(process.env.PORT || 4420);
 const server = await preview({ preview: { port: PORT, strictPort: true } });
 const browser = await chromium.launch({ args: ["--use-gl=angle", "--use-angle=swiftshader-webgl", "--enable-unsafe-swiftshader", "--disable-gpu-rasterization"] });
@@ -12,4 +12,6 @@ await page.goto(`http://localhost:${PORT}/?debug&quality=low`);
 await page.waitForFunction(() => window.__ready === true, null, { timeout: 240_000, polling: 500 });
 const report = await page.evaluate(hullCheck);
 console.log(report.length ? report.join("\n") : "no parts through the hull");
+const grips = await page.evaluate(gripCheck);
+console.log(grips.length ? grips.join("\n") : "every hand reaches its grip");
 await browser.close(); await server.close();

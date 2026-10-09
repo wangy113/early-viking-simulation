@@ -157,10 +157,10 @@ class Human {
     this.leg = { l1: wp("thigh_l").distanceTo(wp("calf_l")), l2: wp("calf_l").distanceTo(wp("foot_l")) };
     this.shoulderY = wp("upperarm_l").y + 0.075; // top of the shoulder, where a carried oar rests
     this.grip();
-    this.gripOff = this.gripPoint("l", new THREE.Vector3()).distanceTo(wp("hand_l"));
     this.footRest = {};
     for (const s of ["l", "r"]) this.footRest[s] = this.b[`foot_${s}`].getWorldQuaternion(new THREE.Quaternion());
     this.hands = { back: new THREE.Vector3(), front: new THREE.Vector3() };
+    this.miss = { back: 0, front: 0 };
     this.mirror = 1;
   }
   // Curl the fingers into a loose grip. Most figures hold a tool, and open A-pose hands look odd.
@@ -224,18 +224,35 @@ class Human {
     // the oar, the shield and the chest are placed from those points. The elbow bends toward
     // the proof of concept's elbow.
     const u = (p, lat) => new THREE.Vector3(lat, -p[1] * CUB, this.mirror * p[0] * CUB); // unscaled
+    // An arm may instead give an exact grip point: `local` in this figure's own frame (meters,
+    // +z forward), or `head`, an offset from the head (a hand at the brow or under the chin).
+    // `pole` is where the elbow points, also in the figure's frame.
+    const headPos = b.head.getWorldPosition(new THREE.Vector3());
     for (const [side, s, lat] of [["back", "r", -0.205], ["front", "l", 0.205]]) {
       const arm = pd[`${side}Arm`];
-      const sh0 = u(pd.sh, lat).add(v.set(0, -0.04, 0));
-      const elbow = sh0.clone().add(u(arm.el, lat).sub(sh0).normalize().multiplyScalar(UA));
-      const fdir = u(arm.hand, lat).sub(elbow).normalize();
-      const handPt = elbow.clone().addScaledVector(fdir, FA + 0.045);
       const ua = b[`upperarm_${s}`], fa = b[`lowerarm_${s}`], hand = b[`hand_${s}`];
       const A = ua.getWorldPosition(new THREE.Vector3());
-      // aim the wrist short of the hand point, so the middle of the fist lands on it
-      const T = toWorld(handPt.clone().addScaledVector(fdir, -this.gripOff));
-      const E = solveJoint(A, T, this.arm.l1, this.arm.l2, toWorld(elbow));
-      aimAt(ua, fa, E); aimAt(fa, hand, T);
+      let goal, pole;
+      if (arm.local || arm.head) {
+        goal = arm.local ? toWorld(arm.local) : headPos.clone().add(dirWorld(arm.head));
+        const aL = g.worldToLocal(A.clone()), gL = g.worldToLocal(goal.clone());
+        pole = arm.pole ? toWorld(arm.pole) : toWorld(aL.lerp(gL, 0.5).add(v.set(Math.sign(lat) * 0.3, -0.3, -0.15)));
+      } else {
+        const sh0 = u(pd.sh, lat).add(v.set(0, -0.04, 0));
+        const elbow = sh0.clone().add(u(arm.el, lat).sub(sh0).normalize().multiplyScalar(UA));
+        const fdir = u(arm.hand, lat).sub(elbow).normalize();
+        goal = toWorld(elbow.clone().addScaledVector(fdir, FA + 0.045)); pole = toWorld(elbow);
+      }
+      // reach, see where the middle of the fist lands, and correct twice
+      const T = goal.clone(), fist = new THREE.Vector3();
+      for (let it = 0; it < 3; it++) {
+        if (it) { fa.quaternion.copy(this.rest.get(fa).q); ua.quaternion.copy(this.rest.get(ua).q); ua.updateMatrixWorld(true); }
+        const E = solveJoint(A, T, this.arm.l1, this.arm.l2, pole);
+        aimAt(ua, fa, E); aimAt(fa, hand, T);
+        this.gripPoint(s, fist);
+        T.add(goal.clone().sub(fist));
+      }
+      this.miss[side] = goal.distanceTo(this.gripPoint(s, fist)); // how far the fist ended from its target
       g.worldToLocal(this.gripPoint(s, this.hands[side]));
     }
 
