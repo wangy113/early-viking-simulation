@@ -23,7 +23,7 @@ for (const [w, h] of sizes) for (const v of views) {
   await page.goto(`http://localhost:${PORT}/${q}${hash}`);
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 180_000, polling: 500 });
   await page.waitForTimeout(v === "overview" ? 6000 : 2500);
-  if (hideUi) await page.addStyleTag({ content: ".bar,.panel,.pad,#markers,.hint,.modal-back,#loader{display:none!important}" });
+  if (hideUi) await page.addStyleTag({ content: ".bar,.panel,.pad,#markers,.hint,dialog,#loader{display:none!important}" });
   const file = `${outDir}/${v.startsWith("cam=") ? "cam" + views.indexOf(v) : v}-${w}.png`;
   const t0 = Date.now(); await page.screenshot({ path: file, timeout: 600_000 });
   const fps = await page.evaluate(() => new Promise((r) => { let n = 0; const t = performance.now(); const f = () => (++n < 5 ? requestAnimationFrame(f) : r(5000 / (performance.now() - t))); requestAnimationFrame(f); }));

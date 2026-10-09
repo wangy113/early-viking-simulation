@@ -8,39 +8,43 @@
 </head>
 <body>
 <canvas id="scene" aria-label="3D scene of the Gokstad Viking ship on a beach with people preparing it. Use the Text version button for a full description." role="img"></canvas>
-<div id="markers" aria-label="Stops in the scene"></div>
+<div id="markers" role="group" aria-label="Stop markers in the scene"></div>
 
 <div class="bar">
   <div class="title">The Gokstad Ship<small>Vestfold, Norway, about AD 900</small></div>
   <span class="spacer"></span>
   <span class="progress" id="progress" aria-live="polite">0 of 12 stops</span>
   <button class="btn primary" id="guide">Guide me to the next stop</button>
-  <button class="btn" id="board">Board the ship</button>
-  <button class="btn" id="overview">Bird's-eye view</button>
-  <button class="btn" id="sailBtn">Raise the sail</button>
-  <button class="btn" id="textBtn">Text version</button>
-  <button class="btn" id="aboutBtn">About and sources</button>
-  <button class="btn" id="qualityBtn">Quality</button>
+  <button class="btn menu" id="menuBtn" aria-expanded="false" aria-controls="tools">Menu</button>
+  <div class="tools" id="tools">
+    <button class="btn" id="stopsBtn">All stops</button>
+    <button class="btn" id="board">Board the ship</button>
+    <button class="btn" id="overview">Bird's-eye view</button>
+    <button class="btn" id="sailBtn">Raise the sail</button>
+    <button class="btn" id="motionBtn" aria-pressed="false">Pause motion</button>
+    <button class="btn" id="textBtn">Text version</button>
+    <button class="btn" id="aboutBtn">About and sources</button>
+    <button class="btn" id="qualityBtn">Quality</button>
+  </div>
 </div>
 
-<div class="pad" aria-label="Move">
+<div class="pad" role="group" aria-label="Move">
   <button class="btn up" data-move="f" aria-label="Walk forward">&#9650;</button>
   <button class="btn left" data-move="l" aria-label="Turn left">&#9664;</button>
   <button class="btn down" data-move="b" aria-label="Walk back">&#9660;</button>
   <button class="btn right" data-move="r" aria-label="Turn right">&#9654;</button>
 </div>
-<div class="hint" id="hint">Drag to look around. Click the ground to walk there. Arrow keys or W A S D also move you.</div>
+<div class="hint" id="hint">Drag to look around. Click the ground to walk there. Arrow keys or W A S D also move you. On a touch screen, pinch to walk.</div>
 
-<section class="panel" id="panel" hidden aria-live="polite" aria-labelledby="pTitle">
+<section class="panel" id="panel" hidden aria-labelledby="pTitle">
   <button class="close" id="pClose" aria-label="Close this stop">&times;</button>
   <div class="tags" id="pTags"></div>
-  <h2 id="pTitle"></h2>
+  <h2 id="pTitle" tabindex="-1"></h2>
   <div id="pBody"></div>
   <div class="row"><button class="btn primary" id="pNext">Next stop</button><button class="btn" id="pExtra" hidden></button></div>
 </section>
 
-<div class="modal-back" id="intro">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="introTitle">
+<dialog class="modal" id="intro" aria-labelledby="introTitle">
     <h1 id="introTitle">Walk around a Viking ship</h1>
     <p>This is the Gokstad ship, built in Norway around 890 and found in a burial mound in 1880. Here it is pulled up on a beach while its crew gets it ready. Walk around it, climb aboard, and visit the 12 numbered stops.</p>
     <p>Every stop is tagged so you can tell evidence from imagination:</p>
@@ -51,21 +55,25 @@
     </div>
     <p>The ship follows the real measurements. The people and what they are doing are illustrations.</p>
     <p><strong>How to move:</strong> drag to look around, click the ground to walk there, or use the arrow buttons. Press <em>Guide me</em> any time to be taken to the next stop.</p>
+    <p><strong>Moving pictures:</strong> the people, sea and smoke move. Press <em>Pause motion</em> in the menu to stop them.</p>
     <button class="btn primary" id="start">Start exploring</button>
-  </div>
-</div>
+</dialog>
 
-<div class="modal-back" id="textModal" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="textTitle">
+<dialog class="modal" id="stopsModal" aria-labelledby="stopsTitle">
+    <button class="close" data-close="stopsModal" aria-label="Close the list of stops">&times;</button>
+    <h1 id="stopsTitle">All stops</h1>
+    <p>Choose a stop to go there. Stops you have visited are marked.</p>
+    <ol class="stoplist" id="stopList"></ol>
+</dialog>
+
+<dialog class="modal" id="textModal" aria-labelledby="textTitle">
     <button class="close" data-close="textModal" aria-label="Close text version">&times;</button>
     <h1 id="textTitle">Text version of the scene</h1>
     <p>The Gokstad ship rests on log rollers on a sandy beach, its bow pointing toward a fjord with mountains beyond. It is about 23 meters long and 5 meters wide, built of overlapping oak planks, with a tall curved post at each end, a mast amidships and a row of yellow and black shields along the rail. Crew members work on and around it. On the beach to the left of the ship is a small camp with a tent, a cooking fire, two people playing a board game, horses and a dog. A small boat lies on the sand near the water.</p>
     <div id="textStops"></div>
-  </div>
-</div>
+</dialog>
 
-<div class="modal-back" id="aboutModal" hidden>
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+<dialog class="modal" id="aboutModal" aria-labelledby="aboutTitle">
     <button class="close" data-close="aboutModal" aria-label="Close about">&times;</button>
     <h1 id="aboutTitle">About the Gokstad ship</h1>
     <p>In 1880, a team led by the archaeologist Nicolay Nicolaysen dug into a large burial mound at Gokstad farm near Sandefjord, Norway. Inside lay a ship about 23 meters long and 5 meters wide. Tree rings in its timber show it was built around 890. A few years later a man was laid in a timber burial chamber on board, and the ship was covered with earth.</p>
@@ -80,9 +88,11 @@
       <li><a href="https://penelope.uchicago.edu/~grout/encyclopaedia_romana/britannia/anglo-saxon/maldon/gokstad.html" target="_blank" rel="noopener">The Gokstad ship</a>, Encyclopaedia Romana, University of Chicago</li>
       <li><a href="https://en.wikipedia.org/wiki/Viking_(replica_Viking_longship)" target="_blank" rel="noopener">Viking (replica Viking longship)</a>, Wikipedia</li>
     </ul>
-    <p class="src">Proof of concept. Check details against the excavation report and the museum's current publications before using it for assessment.</p>
-  </div>
-</div>
+    <h2>Accessibility</h2>
+    <p>We aim to meet WCAG 2.1 at level AA. Every control is a visible button that works with a mouse, touch or the keyboard. The Text version gives all the content of the stops without the 3D scene. The All stops list takes you to any stop without using the scene. Pause motion stops the moving people, sea and smoke, and motion starts paused if your device asks for reduced motion. Camera moves then jump instead of fly.</p>
+    <p>The 3D scene itself cannot be fully described to a screen reader, so the Text version is the equal alternative. If something does not work for you, please tell your instructor.</p>
+    <p class="src">Check details against the excavation report and the museum's current publications before using this for assessment.</p>
+</dialog>
 
 <div id="loader" role="status"><div>Loading the ship&hellip; <span id="loadPct">0%</span></div><div class="loadbar"><span id="loadBar"></span></div></div>
 <script type="module" src="./src/main.js"></script>

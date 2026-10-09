@@ -10,7 +10,7 @@ A Three.js web app in which online students (Missouri Baptist University, throug
 - `npm run shots -- <dir> stop1 overview deck` saves preview screenshots (set `HIDE_UI=1` to hide the interface, `PORT` to run several at once). Software WebGL is slow, so allow about two minutes per shot.
 - Quality levels live in `src/quality.js` (Low, Medium, High). `?quality=low` forces one, the Quality button cycles them and remembers the choice on that device, otherwise the device is guessed. `?debug` shows frame rate, draw calls and triangles.
 - `node scripts/humans/closeups.mjs <dir>` saves a close-up of every person (run `npm run build` first).
-- `npx playwright test` builds, serves and runs the smoke and deep-link tests. Headless WebGL uses SwiftShader. Keep `--disable-gpu-rasterization` or 2D canvas painting takes minutes.
+- `npx playwright test` builds, serves and runs the smoke, deep-link and accessibility tests (`tests/a11y.spec.js` uses axe-core). The manual checklist is in `docs/accessibility.md`. Headless WebGL uses SwiftShader. Keep `--disable-gpu-rasterization` or 2D canvas painting takes minutes.
 
 ## Layout
 - `src/content/stops.json` holds the stop text an instructor or SME may edit. Camera views and marker anchors are in `src/stops.js`, keyed by stop id.

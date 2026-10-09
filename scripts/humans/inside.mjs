@@ -25,7 +25,7 @@ await page.close();
 for (const [name, cam] of Object.entries(cams)) {
   const p = await browser.newPage({ viewport: { width: 800, height: 600 } });
   await p.goto(url(`#cam=${cam}`)); await ready(p); await p.waitForTimeout(1500);
-  await p.addStyleTag({ content: ".bar,.panel,.pad,.hint,.modal-back,#loader,#debug{display:none!important}" });
+  await p.addStyleTag({ content: ".bar,.panel,.pad,.hint,dialog,#loader,#debug{display:none!important}" });
   for (const t of [0, 1]) { await p.screenshot({ path: `${outDir}/${name}${t}.png`, timeout: 600_000 }); await p.waitForTimeout(700); }
   console.log("saved", name); await p.close();
 }

@@ -42,10 +42,12 @@ function updateMarkers() {
 
 // ---------------- stop panel ----------------
 const panel = $("panel");
-let current = -1;
+let current = -1, panelOpener = null;
 const tagHtml = (tags, sep = "") => tags.map((t) => `<span class="tag ${T[t][0]}">${T[t][1]}</span>`).join(sep);
 function goToStop(i) {
   const s = STOPS[i]; current = i;
+  // remember where focus was, so closing the stop can return there
+  if (panel.hidden && document.activeElement && document.activeElement !== document.body) panelOpener = document.activeElement;
   const look = s.view.look(), onBoard = !!s.view.board;
   flyTo(s.view.pos, look, onBoard);
   state.visited.add(s.id); s.el.classList.add("visited");
@@ -54,16 +56,22 @@ function goToStop(i) {
   $("pTitle").textContent = `${i + 1}. ${s.title}`;
   $("pBody").innerHTML = s.body + `<p class="notice"><strong>Notice:</strong> ${s.notice}</p>`;
   const ex = $("pExtra"); ex.hidden = s.extra !== "sail"; ex.textContent = sail$.target ? "Lower the sail" : "Raise the sail";
-  panel.hidden = false; $("pTitle").focus?.();
+  panel.hidden = false; $("pTitle").focus({ preventScroll: true });
+  renderStopList();
   history.replaceState(null, "", `#stop=${i + 1}`);
 }
 function nextStop() { for (let k = 1; k <= STOPS.length; k++) { const j = (current + k) % STOPS.length; if (!state.visited.has(STOPS[j].id) || state.visited.size === STOPS.length) return goToStop(j); } }
 $("guide").onclick = nextStop;
 $("pNext").onclick = nextStop;
-$("pClose").onclick = () => { panel.hidden = true; };
+function closePanel() {
+  panel.hidden = true;
+  const back = panelOpener && panelOpener.isConnected && panelOpener.offsetParent !== null ? panelOpener : $("guide");
+  back.focus(); panelOpener = null;
+}
+$("pClose").onclick = closePanel;
 
 function setSailLabel() { const t = sail$.target ? "Lower the sail" : "Raise the sail"; $("sailBtn").textContent = t; $("pExtra").textContent = t; }
-function toggleSail() { sail$.target = sail$.target ? 0 : 1; setSailLabel(); if (reduceMotion) sail$.amt = sail$.target; }
+function toggleSail() { sail$.target = sail$.target ? 0 : 1; setSailLabel(); if (reduceMotion || state.paused) sail$.amt = sail$.target; }
 $("sailBtn").onclick = toggleSail;
 $("pExtra").onclick = toggleSail;
 
@@ -76,21 +84,62 @@ $("board").onclick = () => {
 $("overview").onclick = () => { setOnBoard(false); flyTo(v3(17, 11, 17), v3(-2, 0.5, 0), false, 2); };
 
 // ---------------- text version and dialogs ----------------
+// Native dialogs trap focus and close with Escape. Focus goes back to the button that opened them.
 $("textStops").innerHTML = STOPS.map((s, i) => `<h2>${i + 1}. ${s.title}</h2><p>${tagHtml(s.tags, " ")}</p>${s.body}<p><strong>Notice:</strong> ${s.notice}</p>`).join("");
-function openModal(id) { $(id).hidden = false; document.querySelector(`#${id} .close`)?.focus(); }
+const openers = new Map();
+function openModal(id) {
+  const d = $(id); openers.set(d, document.activeElement);
+  closeMenu(false); d.showModal(); d.querySelector(".close, .btn")?.focus();
+}
+// "stay" means the code that closed the dialog has already placed focus
+document.querySelectorAll("dialog").forEach((d) => d.addEventListener("close", () => { const o = openers.get(d); openers.delete(d); if (o === "stay") return; if (o && o.isConnected && o.offsetParent !== null) o.focus(); else $("guide").focus(); openers.delete(d); }));
 $("textBtn").onclick = () => openModal("textModal");
 $("aboutBtn").onclick = () => openModal("aboutModal");
+$("stopsBtn").onclick = () => openModal("stopsModal");
+document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => $(b.dataset.close).close()));
+
+// the list of all stops, a keyboard and screen reader path to every stop
+function renderStopList() {
+  $("stopList").innerHTML = STOPS.map((s, i) => { const seen = state.visited.has(s.id); return `<li><button class="btn${seen ? " seen" : ""}" data-stop="${i}"><span class="num" aria-hidden="true">${i + 1}</span>${i + 1}. ${s.title}<span class="state">${seen ? "Visited" : ""}</span></button></li>`; }).join("");
+  $("stopList").querySelectorAll("[data-stop]").forEach((b) => (b.onclick = () => { openers.set($("stopsModal"), "stay"); $("stopsModal").close(); panelOpener = $("stopsBtn"); goToStop(Number(b.dataset.stop)); }));
+}
+renderStopList();
+
 // visible quality control: cycles Low, Medium and High, then reloads with the same view
 $("qualityBtn").textContent = `Quality: ${TIER.label}`;
 $("qualityBtn").setAttribute("aria-label", `Graphics quality: ${TIER.label}. Press to change.`);
 $("qualityBtn").onclick = nextQuality;
 void QUALITY;
-document.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => ($(b.dataset.close).hidden = true)));
-$("start").onclick = () => { $("intro").hidden = true; canvas.focus(); };
-addEventListener("keydown", (e) => { if (e.key === "Escape") { document.querySelectorAll(".modal-back").forEach((m) => (m.hidden = true)); panel.hidden = true; } });
+
+// Pause motion stops the people, sea, smoke and birds (WCAG 2.2.2). It starts paused when the
+// device asks for reduced motion.
+function setPaused(p) {
+  state.paused = p;
+  $("motionBtn").setAttribute("aria-pressed", String(p));
+  $("motionBtn").textContent = p ? "Play motion" : "Pause motion";
+}
+$("motionBtn").onclick = () => setPaused(!state.paused);
+setPaused(reduceMotion);
+
+// on phones the tools fold into a Menu button
+const tools = $("tools"), menuBtn = $("menuBtn");
+function closeMenu(focusBack = true) { if (!tools.classList.contains("open")) return; tools.classList.remove("open"); menuBtn.setAttribute("aria-expanded", "false"); if (focusBack) menuBtn.focus(); }
+menuBtn.onclick = () => { const open = !tools.classList.contains("open"); tools.classList.toggle("open", open); menuBtn.setAttribute("aria-expanded", String(open)); if (open) tools.querySelector(".btn").focus(); };
+tools.addEventListener("click", (e) => { if (e.target.closest(".btn") && getComputedStyle(menuBtn).display !== "none") closeMenu(false); });
+
+// the welcome dialog opens unless a link goes straight to a place in the scene
+const intro = $("intro");
+function closeIntro() { if (intro.open) { openers.set(intro, "stay"); intro.close(); } }
+if (!/stop=|deck|cam=|overview/.test(location.hash)) intro.showModal();
+$("start").onclick = () => { openers.set(intro, $("guide")); intro.close(); };
+addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
+  if (tools.classList.contains("open")) closeMenu();
+  else if (!panel.hidden) closePanel();
+});
 
 // ---------------- resize ----------------
 function resize() { const w = innerWidth, h = innerHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
 addEventListener("resize", resize); resize();
 
-export { goToStop, updateMarkers, updateBoardBtn, setSailLabel };
+export { goToStop, updateMarkers, updateBoardBtn, setSailLabel, closeIntro };

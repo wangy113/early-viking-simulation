@@ -211,3 +211,11 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - Fixed a bug from M5: a comment had swallowed the terrain rotation, so the beach was missing on the live site.
 - Fixed after the user's review: the shipwright's head and hammer hand and one chest lifter's hand reached through the planks. They stand further out now, and `tests/hull-check.js` (run by the smoke tests and `scripts/humans/collide.mjs`) fails if any body part crosses the hull. Hands now go exactly to the proof of concept's hand points, where the tools are placed, with the middle of the fist on that point.
 - Walking ashore now follows the ground height, so the camera no longer sinks under the rising land near the woods. Walking stops short of the woods.
+
+## 2026-10-09: M6 accessibility and mobile
+- The horse and dog wait for the user to add a `SKETCHFAB_TOKEN`. Chosen models, both CC-BY: "Horse Rigged (Game Ready)" by abhayexe and "Animated Dog, Shiba Inu" by quander.
+- Dialogs are native `<dialog>` elements with focus return. A stop's title takes focus when it opens.
+- New buttons: All stops (a list of every stop) and Pause motion (starts paused under reduced motion).
+- Phones: the tools fold into a Menu, the stop panel is a bottom sheet, touch targets are 44 pixels, and two fingers pinch to walk.
+- `tests/a11y.spec.js`: axe-core WCAG 2.1 AA scans, a keyboard-only path, Pause motion, and a 320 pixel reflow and touch-target check. `docs/accessibility.md` has the manual checklist for NVDA, VoiceOver, zoom and high contrast.
+- The About page has an accessibility statement.

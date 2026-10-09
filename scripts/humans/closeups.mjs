@@ -40,7 +40,7 @@ await Promise.all([0, 1].map(async (lane) => {
   for (const [name, cam] of list.filter((_, i) => i % 2 === lane)) {
     const p = await browser.newPage({ viewport: { width: w, height: h } });
     await p.goto(url(`#cam=${cam}`)); await ready(p); await p.waitForTimeout(2000);
-    await p.addStyleTag({ content: ".bar,.panel,.pad,#markers,.hint,.modal-back,#loader,#debug{display:none!important}" });
+    await p.addStyleTag({ content: ".bar,.panel,.pad,#markers,.hint,dialog,#loader,#debug{display:none!important}" });
     await p.screenshot({ path: `${outDir}/${name}.png`, timeout: 600_000 });
     console.log("saved", name); await p.close();
   }

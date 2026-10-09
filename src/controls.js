@@ -6,7 +6,7 @@ import { ground, grass, groundY } from "./world.js";
 import { v3 } from "./cast.js";
 
 // ---------------- camera, movement ----------------
-const state = { yaw: 0, pitch: 0, onBoard: false, visited: new Set(), flight: null, walkTo: null };
+const state = { yaw: 0, pitch: 0, onBoard: false, visited: new Set(), flight: null, walkTo: null, paused: false };
 const hooks = { onBoardChange: () => {} };
 camera.position.set(10.5, 1.65, -9.5);
 function lookAtPoint(p) { const d = p.clone().sub(camera.position); state.yaw = Math.atan2(-d.x, -d.z); state.pitch = Math.atan2(d.y, Math.hypot(d.x, d.z)); }
@@ -49,17 +49,29 @@ function move(fwd, side) {
   camera.position.addScaledVector(f, fwd).addScaledVector(r, side); constrain(camera.position, prev);
 }
 
-// look with drag, click to walk
+// look with drag, click to walk. On touch screens two fingers pinch to walk forward or back.
 let drag = null;
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-canvas.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, yaw: state.yaw, pitch: state.pitch, moved: 0 }; canvas.setPointerCapture(e.pointerId); canvas.classList.add("dragging"); });
-canvas.addEventListener("pointermove", (e) => {
-  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
-  if (drag.moved > 4) { state.flight = null; state.yaw = drag.yaw + dx * 0.004; state.pitch = clamp(drag.pitch + dy * 0.004, -1.2, 1.2); }
+const touches = new Map(); let pinch = null;
+const spread = () => { const [a, b] = [...touches.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
+canvas.addEventListener("pointerdown", (e) => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) { drag = null; pinch = spread(); return; }
+  drag = { x: e.clientX, y: e.clientY, yaw: state.yaw, pitch: state.pitch, moved: 0, slop: e.pointerType === "touch" ? 12 : 4 };
+  canvas.setPointerCapture(e.pointerId); canvas.classList.add("dragging");
 });
+canvas.addEventListener("pointermove", (e) => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (pinch !== null && touches.size === 2) { const d = spread(); move((d - pinch) * 0.02, 0); pinch = d; return; }
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.moved = Math.max(drag.moved, Math.hypot(dx, dy));
+  if (drag.moved > drag.slop) { state.flight = null; state.yaw = drag.yaw + dx * 0.004; state.pitch = clamp(drag.pitch + dy * 0.004, -1.2, 1.2); }
+});
+const lift = (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; };
+canvas.addEventListener("pointercancel", (e) => { lift(e); drag = null; canvas.classList.remove("dragging"); });
 canvas.addEventListener("pointerup", (e) => {
+  lift(e);
   canvas.classList.remove("dragging");
-  if (drag && drag.moved <= 4) {
+  if (drag && drag.moved <= drag.slop) {
     ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); ray.setFromCamera(ndc, camera);
     const hit = ray.intersectObjects([ground, grass, ...solids], false)[0];
     if (hit) {
