@@ -215,9 +215,10 @@ def smoothstep(a, b, x):
     return t * t * (3 - 2 * t)
 
 def skirt_weights(t, x, y):
-    # pelvis at the waist, thighs by side toward the hem. The middle splits between both legs.
+    # pelvis at the waist, thighs by side toward the hem. A wide blend across the middle lets
+    # the front hang over both thighs when seated, instead of parting between them.
     leg = 0.85 * smoothstep(0.1, 1.0, t)
-    side = smoothstep(-0.05, 0.05, x)
+    side = smoothstep(-0.13, 0.13, x)
     return [("pelvis", 1 - leg), ("thigh_l", leg * side), ("thigh_r", leg * (1 - side))]
 
 def long_skirt_weights(t, x, y):
@@ -300,8 +301,8 @@ if g.get("straps"):
     keep = lambda i: DOM[i] in TORSO | {"clavicle_l", "clavicle_r"} and WPOS[i].z > armpitZ - 0.01 and 0.07 < abs(WPOS[i].x) < 0.11
     shell("apronstraps", keep, 0.02, smooth=2, hem=0.0)
 if g.get("shawl"):
-    keep = lambda i: (DOM[i] in TORSO | {"clavicle_l", "clavicle_r", "upperarm_l", "upperarm_r"} and WPOS[i].z > armpitZ + 0.01 and not in_neck_hole(WPOS[i]))
-    shell("shawl", keep, 0.024, smooth=6)
+    keep = lambda i: (DOM[i] in TORSO | {"clavicle_l", "clavicle_r", "upperarm_l", "upperarm_r"} and WPOS[i].z > armpitZ + 0.04 and not in_neck_hole(WPOS[i]))
+    shell("shawl", keep, 0.017, smooth=10)
 if g.get("cap"):
     browZ = Z("head") + 0.075
     keep = lambda i: DOM[i] == "head" and WPOS[i].z > browZ
