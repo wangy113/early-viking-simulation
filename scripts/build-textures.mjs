@@ -30,6 +30,7 @@ fs.writeFileSync("src/assets-manifest.json", JSON.stringify(manifest, null, 2) +
 
 const lines = ["# Asset credits", "", "All textures and sky images come from [Poly Haven](https://polyhaven.com) and are released under CC0 (public domain). Attribution is not required. We credit the authors as good academic practice.", "", "| Use | Asset | Authors | Source |", "|---|---|---|---|"];
 for (const c of credits) lines.push(`| ${c.role} | ${c.name} | ${c.authors.join(", ")} | https://polyhaven.com/a/${c.id} |`);
+lines.push("", "## People", "", "The bodies, skins, eyes, eyebrows, eyelashes and hair of the people are MakeHuman system assets, released under CC0 by Data Collection AB, Joel Palmius and Jonas Hauquier. https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html", "", "The beards come from the MakeHuman bodyparts05 pack, released under CC0: Viking beard and Viking moustache by RehmanPolanski, scruffy beard by WDG, Sigmund beard by grinsegold. https://static.makehumancommunity.org/assets/assetpacks/bodyparts05.html", "", "They were assembled with MPFB, the MakeHuman plugin for Blender. The Viking clothing is made by our own script, `scripts/humans/make_human.py`.");
 lines.push("", "The sea normal map `tex/waternormals.jpg` is from the three.js examples (MIT License), https://github.com/mrdoob/three.js/tree/r181/examples/textures");
 fs.writeFileSync(`${out}/CREDITS.md`, lines.join("\n") + "\n");
 console.log("built", Object.keys(manifest.textures).length, "texture sets");

@@ -9,6 +9,7 @@ A Three.js web app in which online students (Missouri Baptist University, throug
 - `npm run textures:fetch` downloads the CC0 sources named in `scripts/textures.config.json` into `assets-src/` (git ignored). In the cloud container run it with `NODE_USE_ENV_PROXY=1`. `npm run textures:build` writes the web versions to `public/assets/` and `src/assets-manifest.json`.
 - `npm run shots -- <dir> stop1 overview deck` saves preview screenshots (set `HIDE_UI=1` to hide the interface, `PORT` to run several at once). Software WebGL is slow, so allow about two minutes per shot.
 - Quality levels live in `src/quality.js` (Low, Medium, High). `?quality=low` forces one, the Quality button cycles them and remembers the choice on that device, otherwise the device is guessed. `?debug` shows frame rate, draw calls and triangles.
+- `node scripts/humans/closeups.mjs <dir>` saves a close-up of every person (run `npm run build` first).
 - `npx playwright test` builds, serves and runs the smoke and deep-link tests. Headless WebGL uses SwiftShader. Keep `--disable-gpu-rasterization` or 2D canvas painting takes minutes.
 
 ## Layout
@@ -18,7 +19,7 @@ A Three.js web app in which online students (Missouri Baptist University, throug
 
 ## Visual direction
 - Changed on 2026-10-08 by the user: the look is **near-realistic** (PBR materials, CC0 photo-scanned textures from Poly Haven and ambientCG, HDRI lighting, sun shadows, an ocean shader). It replaces the earlier watercolour style.
-- People and animals are 3D figures built in code (`src/people.js`). They are illustrations, not portraits, with simple faces.
+- People are realistic MakeHuman bodies (CC0), built offline in Blender with MPFB by `scripts/build-people.mjs` (see `scripts/humans/README.md`). The Viking clothing is made from each body's own surface by `scripts/humans/make_human.py`. `src/humans.js` loads them and poses them from the task loops in `src/people.js`. Animals are still built in code in `src/people.js`. People are illustrations, not portraits of real individuals.
 - Clothing, hair and colours follow `docs/people-research.md`, which grades each choice as found, other evidence or reconstruction. Update it with a source before changing how people look.
 - Every texture or HDRI that ships must be CC0 and listed in `public/assets/CREDITS.md` with its source URL.
 

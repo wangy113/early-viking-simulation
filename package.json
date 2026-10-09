@@ -19,7 +19,11 @@
     "three": "0.181.2"
   },
   "devDependencies": {
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/extensions": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
     "@playwright/test": "1.56.1",
+    "meshoptimizer": "^0.25.0",
     "sharp": "0.35.5",
     "vite": "8.3.4"
   }

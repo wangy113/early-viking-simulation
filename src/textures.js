@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import manifest from "./assets-manifest.json";
 import { TIER } from "./quality.js";
+import { preloadPeople } from "./humans.js";
 
 // Loads every texture once before the scene is built. Scene code then asks for
 // clones with its own repeat and rotation, which share the uploaded image.
@@ -21,6 +22,7 @@ function preloadAssets(onProgress = () => {}) {
     manager.onError = (url) => reject(new Error(`Could not load ${url}`));
     for (const f of files) loaded.set(f, tl.load(base + f));
     new HDRLoader(manager).setDataType(THREE.HalfFloatType).load(base + manifest.sky.light, (t) => { hdr = t; });
+    preloadPeople(manager);
   });
 }
 

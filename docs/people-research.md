@@ -1,6 +1,6 @@
 # How the people are dressed, and why
 
-Research notes for the 3D figures in `src/people.js`. Researched on 2026-10-08. Each point is marked with how strong the evidence is, using the same three levels as the stops:
+Research notes for the people in the scene. Since 2026-10-09 they are realistic MakeHuman bodies dressed by `scripts/humans/make_human.py`, with colours set in `src/people.js`. Researched on 2026-10-08. Each point is marked with how strong the evidence is, using the same three levels as the stops:
 
 - **Found**: direct archaeological evidence, such as grave finds or surviving textiles.
 - **Other evidence**: written sources, images or figurines, often from outside Scandinavia or from later.
@@ -16,7 +16,7 @@ Textiles rarely survive. Most of what we know comes from scraps preserved by met
 | Trim | Narrow woven bands at the neck, cuffs and hem on the better-dressed men only (the steersman). | Found. Tablet-woven bands, some with silk and gold or silver thread, come from about 60 of 170 excavated graves at Birka, and Birka grave 824 suggests they were sewn on as edging. A gold-thread band about 4 mm wide also comes from the Gokstad burial itself. Which garments carried them is reconstruction. |
 | Trousers | Wool trousers, fairly close fitting. | Found, with open questions. Trousers are known from Birka, Hedeby and Mammen in several cuts. How they fastened, and whether some were linen, is unsettled. |
 | Leg wraps | Wool bands wound from the ankle to below the knee (winingas, Old Norse vindingr). | Other evidence and finds from early medieval sites across Europe. Fine herringbone-twill bands about 8 to 10 cm wide are common in urban finds. How they were tied is unclear. |
-| Shoes | Ankle-high leather turnshoes with rounded toes. | Found. Turn-sewn shoes are known from Hedeby and York. |
+| Shoes | Soft, ankle-high leather turnshoes that follow the shape of the foot, with rounded toes and no heel. | Found. Turn-sewn shoes are known from Hedeby and York. |
 | Belt | Narrow leather belt with a small metal buckle, and a knife in a sheath. | Found. Belt fittings and knives in sheaths are common grave goods, for example Birka grave 824. Where exactly the knife hung is reconstruction. |
 | Cloak | The steersman wears a rectangular wool cloak pinned at the right shoulder with a ringed pin, leaving the right arm free. | Found. Burials show the cloak was commonly fastened on the right side. Ringed pins and penannular brooches were both used. |
 | Cap | The shipwright wears a simple rounded wool cap. | Reconstruction. Caps are known, but the popular "Birka cap" cut is not well documented in the sources we checked. |
@@ -33,6 +33,14 @@ Textiles rarely survive. Most of what we know comes from scraps preserved by met
 | Beads | A string of glass beads hung between the brooches. | Found. The National Museum of Denmark notes beads and small tools were often hung between the brooches. |
 | Shawl | A wool shawl over the shoulders, closed with a third brooch at the chest. | Reconstruction informed by finds. Third brooches occur in some graves. How shawls were cut is not known. |
 | Hair | Long hair tied in a knot at the back of the head, no head covering. | Other evidence. The Hårby figurine (Funen, about AD 800) shows hair tied in a knot at the back. Evidence on women's headwear is thin, so the figure does not invent one. |
+
+## How the realistic figures are made
+
+- Bodies, faces, skin, eyes and hair are MakeHuman assets released under CC0. Ages and builds vary. The steersman is the oldest, with grey hair and beard.
+- Hair: short cuts with a fringe for the "Danish fashion", and hair to the collar or shoulders for others. The cook wears her hair braided at the back, standing in for the knot shown on the Hårby figurine. Hair colours range from fair to red, brown, dark and grey.
+- Beards: a trimmed full beard, a scruffy full beard, a moustache, and some clean-shaven younger men.
+- The tunic, trousers, leg wraps, shoes, cap, cloak, underdress, apron dress, straps and shawl are not modern clothing assets. They are built from each body's surface, so they fit and move with it. Brooches, beads, the belt buckle, the knife and the ringed cloak pin are small separate pieces.
+- Fabrics use photo-scanned CC0 textures from Poly Haven: a fulled wool for tunics and cloaks, a herringbone twill for leg wraps, rough linen for the underdress, and leather for shoes and belts.
 
 ## Colours
 

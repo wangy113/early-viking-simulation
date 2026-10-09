@@ -1,8 +1,7 @@
 import * as THREE from "three";
 import { TAU, lerp, CUB, rngFrom } from "./util.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { pbr } from "./textures.js";
-import { bakeStatic } from "./core.js";
+import { Human } from "./humans.js";
 
 // People and animals as jointed 3D figures. Poses come from the proof of concept's side-view
 // pose functions, in cubits with x forward and y up negative. Each figure maps them to its own
@@ -19,19 +18,19 @@ const C = {
 // hair: "fringe" (short nape, long fringe), "collar" (to the collar), "short", "knot" (tied at the nape)
 // beard: "full", "moustache" or none
 const outfits = {
-  wright: { tunic: C.undyedBrown, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe", beard: "full", cap: "#5c4c3e" },
-  caulk: { tunic: C.undyedLight, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairDark, hairStyle: "collar", beard: "moustache" },
-  oar1: { tunic: C.woad, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairFair, hairStyle: "fringe", beard: "full" },
-  oar2: { tunic: C.undyedBrown, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairRed, hairStyle: "collar" },
-  shield: { tunic: C.green, leg: C.undyedGrey, wrap: "#4e4237", hair: C.hairFair, hairStyle: "fringe", beard: "full" },
-  steer: { tunic: C.madder, trim: "#d4b25a", leg: "#4a4038", wrap: "#2f2822", hair: C.hairGrey, hairStyle: "short", beard: "full", cloak: C.woadDark },
-  rope: { tunic: C.undyedGrey, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairDark, hairStyle: "collar", beard: "moustache" },
-  chest1: { tunic: C.undyedBrown, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe", beard: "full" },
-  chest2: { tunic: C.green, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairFair, hairStyle: "collar", beard: "moustache" },
-  game1: { tunic: "#7d4a36", leg: "#6b5a48", wrap: "#4e4237", hair: C.hairRed, hairStyle: "fringe", beard: "full" },
-  game2: { tunic: C.woad, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairDark, hairStyle: "collar" },
-  cook: { dress: true, under: C.linen, tunic: C.woad, shawl: "#7a5f48", hair: C.hairFair, hairStyle: "knot" },
-  groom: { tunic: C.undyedLight, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe" },
+  wright: { body: "m_wright", tunic: C.undyedBrown, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe", beard: "full", cap: "#5c4c3e" },
+  caulk: { body: "m_collar", tunic: C.undyedLight, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairDark, hairStyle: "collar", beard: "moustache" },
+  oar1: { body: "m_fringe", tunic: C.woad, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairFair, hairStyle: "fringe", beard: "full" },
+  oar2: { body: "m_young", tunic: C.undyedBrown, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairRed, hairStyle: "collar" },
+  shield: { body: "m_short", tunic: C.green, leg: C.undyedGrey, wrap: "#4e4237", hair: C.hairFair, hairStyle: "fringe", beard: "full" },
+  steer: { body: "m_steer", tunic: C.madder, trim: "#d4b25a", leg: "#4a4038", wrap: "#2f2822", hair: C.hairGrey, hairStyle: "short", beard: "full", cloak: C.woadDark },
+  rope: { body: "m_collar", tunic: C.undyedGrey, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairDark, hairStyle: "collar", beard: "moustache" },
+  chest1: { body: "m_fringe", tunic: C.undyedBrown, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe", beard: "full" },
+  chest2: { body: "m_short", tunic: C.green, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairFair, hairStyle: "collar", beard: "moustache" },
+  game1: { body: "m_fringe", tunic: "#7d4a36", leg: "#6b5a48", wrap: "#4e4237", hair: C.hairRed, hairStyle: "fringe", beard: "full" },
+  game2: { body: "m_young", tunic: C.woad, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairDark, hairStyle: "collar" },
+  cook: { body: "f_cook", dress: true, under: C.linen, tunic: C.woad, shawl: "#7a5f48", hair: C.hairFair, hairStyle: "knot" },
+  groom: { body: "m_young", tunic: C.undyedLight, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe" },
 };
 
 // standing pose with optional overrides (from the proof of concept)
@@ -59,8 +58,6 @@ function mat(key, make) { if (!mats.has(key)) mats.set(key, make()); return mats
 const wool = (hex) => mat(`wool${hex}`, () => new THREE.MeshStandardMaterial({ color: hex, roughness: 1, normalMap: clothMaps.normalMap, normalScale: new THREE.Vector2(0.6, 0.6), roughnessMap: clothMaps.roughnessMap }));
 const plain = (hex, roughness = 0.8, metalness = 0) => mat(`p${hex}${roughness}${metalness}`, () => new THREE.MeshStandardMaterial({ color: hex, roughness, metalness }));
 const woodMat = () => mat("wood", () => { const m = pbr("hull", { repeat: [0.5, 0.5] }); return new THREE.MeshStandardMaterial({ ...m, color: 0xd9ab7e }); });
-const skinMat = () => plain(C.skin, 0.7);
-const leather = () => plain("#4a3326", 0.75);
 const darker = (hex, f = 0.75) => "#" + new THREE.Color(hex).multiplyScalar(f).getHexString();
 
 // ---------------- shared geometry ----------------
@@ -81,17 +78,12 @@ const tq = new THREE.Vector3();
 function aim(o, a, b, axis = DOWN) { o.position.copy(a); tq.subVectors(b, a); const L = tq.length(); if (L > 1e-6) o.quaternion.setFromUnitVectors(axis, tq.divideScalar(L)); return L; }
 function stick(o, a, b) { const L = aim(o, a, b, UP); o.scale.set(1, L, 1); }
 
-// ---------------- a person ----------------
-// Each person is a skinned body: one mesh per body part that bends smoothly at the joints,
-// driven by a flat set of bones that setPose aims joint to joint. Heads, hands and shoes are rigid.
-const UA = 0.6 * CUB, FA = 0.55 * CUB, TH = 0.9 * CUB, SH = 0.86 * CUB;
-const HIP_Y = 1.85 * CUB, SHO_Y = 3.0 * CUB, ARM_LAT = 0.205, LEG_LAT = 0.1025;
+// ---------------- skinned tubes, for the animals ----------------
+// The people are MakeHuman figures (src/humans.js). The animals are still built here from
+// skinned tubes on a flat bone rig, with strand cards for manes and tails.
 const smooth = (a, b, x) => THREE.MathUtils.smoothstep(x, a, b);
 
-// soft wool: physical sheen gives the fuzzy highlight real cloth has in sunlight
-const woolSheen = (hex) => mat(`wool2${hex}`, () => new THREE.MeshPhysicalMaterial({ color: hex, roughness: 1, sheen: 0.35, sheenRoughness: 0.8, sheenColor: new THREE.Color(hex).multiplyScalar(0.9), normalMap: clothMaps.normalMap, normalScale: new THREE.Vector2(0.7, 0.7) }));
-const skinPhys = () => mat("skin2", () => new THREE.MeshPhysicalMaterial({ color: C.skin, roughness: 0.58, sheen: 0.35, sheenRoughness: 0.5, sheenColor: new THREE.Color("#f2c4b0") }));
-// strands for hair and beards: many fine curved strokes on a transparent card
+// strands for manes and tails: many fine curved strokes on a transparent card
 const hairTex = (() => { let t; return () => t || (t = (() => {
   const c = document.createElement("canvas"); c.width = 128; c.height = 256; const x = c.getContext("2d"), R = rngFrom(77);
   for (let i = 0; i < 900; i++) { const px = R() * 128, w = 0.6 + R() * 1.2, len = 80 + R() * 170, bend = (R() - 0.5) * 18, v = 150 + R() * 105; x.strokeStyle = `rgba(${v},${v},${v},${0.55 + R() * 0.45})`; x.lineWidth = w; x.beginPath(); x.moveTo(px, 0); x.quadraticCurveTo(px + bend, len / 2, px + bend * 0.4, len); x.stroke(); }
@@ -122,220 +114,6 @@ function skinTube(bones, rings, weights, { x0 = 0, y0 = 0, z0 = 0, segs = 16, up
   return g;
 }
 const blend2 = (b0, b1, at, w = 0.05) => (s) => { const t = smooth(at - w, at + w, s); return [[b0, 1 - t], [b1, t]]; };
-
-// A sculpted head: a sphere pushed and pulled into brow, sockets, nose, cheeks, jaw and chin.
-const headGeo = (female) => geo(`head2${female ? "f" : "m"}`, () => {
-  const g = new THREE.SphereGeometry(0.1, 48, 36), p = g.attributes.position, d = new THREE.Vector3();
-  const bump = (c, s, A) => [new THREE.Vector3(...c).normalize(), s, A];
-  const feats = [
-    bump([0, 0.3, 0.95], 0.28, female ? 0.03 : 0.06),   // brow ridge
-    bump([0.34, 0.13, 0.93], 0.12, -0.11), bump([-0.34, 0.13, 0.93], 0.12, -0.11), // eye sockets
-    bump([0, 0.02, 1], 0.075, 0.17), bump([0, -0.13, 1], 0.07, 0.24), // nose bridge and tip
-    bump([0.5, -0.05, 0.85], 0.2, 0.05), bump([-0.5, -0.05, 0.85], 0.2, 0.05), // cheekbones
-    bump([0, -0.42, 0.9], 0.1, 0.05), bump([0, -0.5, 0.88], 0.08, -0.04), // lips and mouth line
-    bump([0, -0.78, 0.62], 0.16, female ? 0.03 : 0.07), // chin
-  ];
-  for (let i = 0; i < p.count; i++) {
-    d.fromBufferAttribute(p, i).normalize();
-    let r = 1;
-    for (const [c, s, A] of feats) r += A * Math.exp(-c.distanceToSquared(d) / (2 * s * s));
-    // narrower jaw toward the chin, flatter back of the head
-    const jaw = smooth(0.0, -0.8, d.y), sx = (female ? 0.84 : 0.88) * (1 - 0.18 * jaw * (1 - Math.max(0, d.z))), sz = d.z < 0 ? 0.94 : 1;
-    p.setXYZ(i, d.x * 0.1 * r * sx, d.y * 0.1 * r * 1.08, d.z * 0.1 * r * sz * 0.98);
-  }
-  g.computeVertexNormals(); return g;
-});
-
-// a hand: palm, four fingers curled a little, and a thumb
-const handGeo = () => geo("hand2", () => {
-  const parts = [new THREE.BoxGeometry(0.07, 0.075, 0.028, 2, 2, 1).translate(0, -0.037, 0)];
-  for (let f = 0; f < 4; f++) parts.push(new THREE.CapsuleGeometry(0.0085, 0.045 - Math.abs(f - 1.5) * 0.006, 3, 6).rotateX(0.5).translate(-0.026 + f * 0.0175, -0.092, 0.01));
-  parts.push(new THREE.CapsuleGeometry(0.01, 0.035, 3, 6).rotateZ(0.7).translate(0.042, -0.035, 0.012));
-  return mergeGeometries(parts.map((g) => g.toNonIndexed()));
-});
-
-// leg wraps: wool bands wound diagonally from ankle to knee
-function wrapMat(hex) {
-  return mat(`wrap${hex}`, () => {
-    const c = document.createElement("canvas"); c.width = 64; c.height = 64; const x = c.getContext("2d"), base = new THREE.Color(hex);
-    x.fillStyle = `#${base.getHexString()}`; x.fillRect(0, 0, 64, 64);
-    for (let i = -2; i < 6; i++) { x.strokeStyle = `#${base.clone().multiplyScalar(0.62).getHexString()}`; x.lineWidth = 2; x.beginPath(); x.moveTo(0, i * 16); x.lineTo(64, i * 16 + 22); x.stroke(); }
-    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(1, 3);
-    return new THREE.MeshStandardMaterial({ map: t, roughness: 1, normalMap: clothMaps.normalMap, normalScale: new THREE.Vector2(0.5, 0.5) });
-  });
-}
-// ankle-high turnshoe with a rounded toe
-const shoeGeo = () => geo("shoe", () => mergeGeometries([new THREE.SphereGeometry(0.055, 12, 8).scale(0.8, 0.6, 2).translate(0, 0.032, 0.05), new THREE.CylinderGeometry(0.048, 0.052, 0.08, 10).translate(0, 0.07, -0.01)]));
-
-// pull the lower edge of a hair shell into uneven locks so it does not read as a helmet
-function ragged(g, amount = 0.025, seed = 5) {
-  const p = g.attributes.position, R = rngFrom(seed), clumps = Array.from({ length: 24 }, () => R());
-  let minY = Infinity; for (let i = 0; i < p.count; i++) minY = Math.min(minY, p.getY(i));
-  for (let i = 0; i < p.count; i++) {
-    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), edge = Math.max(0, 1 - (y - minY) / 0.05);
-    const k = Math.floor(((Math.atan2(z, x) / TAU) + 0.5) * 24) % 24;
-    p.setY(i, y - edge * amount * (0.3 + clumps[k]));
-  }
-  g.computeVertexNormals(); return g;
-}
-
-class Person {
-  constructor(o) {
-    this.o = o; this.g = new THREE.Group();
-    const g = this.g, female = !!o.dress, skin = skinPhys(), hairCol = o.hair || C.hairBrown, hairSolid = plain(hairCol, 0.9), hairStrands = hairMat(hairCol);
-    const body = woolSheen(female ? o.under : o.tunic), legM = woolSheen(o.leg || C.undyedGrey), wrapM = wrapMat(o.wrap || "#5a4a3a");
-    // bones, all direct children of the person so setPose can aim each one on its own
-    const names = ["pelvis", "spine", "uaL", "faL", "uaR", "faR", "thL", "shL", "thR", "shR"];
-    this.b = {}; const bones = names.map((n) => { const bone = new THREE.Bone(); bone.name = n; this.b[n] = bone; g.add(bone); return bone; });
-    const I = Object.fromEntries(names.map((n, i) => [n, i]));
-    const rest = { pelvis: [0, HIP_Y, 0], spine: [0, HIP_Y, 0], uaL: [-ARM_LAT, SHO_Y - 0.04, 0], faL: [-ARM_LAT, SHO_Y - 0.04 - UA, 0], uaR: [ARM_LAT, SHO_Y - 0.04, 0], faR: [ARM_LAT, SHO_Y - 0.04 - UA, 0], thL: [-LEG_LAT, HIP_Y, 0], shL: [-LEG_LAT, HIP_Y - TH, 0], thR: [LEG_LAT, HIP_Y, 0], shR: [LEG_LAT, HIP_Y - TH, 0] };
-    for (const n of names) this.b[n].position.set(...rest[n]);
-    g.updateMatrixWorld(true);
-    const skeleton = new THREE.Skeleton(bones);
-    // skinned parts are collected, then the ones sharing a material are merged into one mesh
-    const parts = new Map();
-    const skinned = (geom, m) => { if (!parts.has(m)) parts.set(m, []); parts.get(m).push(geom); };
-
-    // torso: from below the belt to the shoulders, wider at the chest, flattened front to back
-    const torsoRings = [[-0.06, 0.165, 0.13], [0, 0.168, 0.13], [0.12, 0.178, 0.135], [0.3, 0.18, 0.13], [0.42, 0.205, 0.14], [0.5, 0.2, 0.13], [0.55, 0.15, 0.1], [0.58, 0.07, 0.06], [0.6, 0.05, 0.05]].map(([s, rx, rz]) => [s + 0.06, rx * (female ? 0.95 : 1), rz * (female ? 1.04 : 1)]);
-    skinned(skinTube(bones, torsoRings, (s) => { const t = smooth(0.06, 0.2, s); return [[I.pelvis, 1 - t], [I.spine, t]]; }, { y0: HIP_Y - 0.06, up: true, segs: 28 }), body);
-    // skirt: the tunic or the long linen shift, following the thighs part of the way
-    const skirtLen = female ? 0.8 : 0.45, flare = female ? 0.24 : 0.27;
-    const skirtRings = []; for (let i = 0; i <= 8; i++) { const s = (i / 8) * skirtLen; skirtRings.push([s, lerp(0.17, flare, smooth(0, skirtLen, s) ** 0.8), lerp(0.135, flare * 0.85, smooth(0, skirtLen, s) ** 0.8)]); }
-    const skirtW = (s, x) => { const t = (s / skirtLen) * (female ? 0.35 : 0.6), l = 1 / (1 + Math.exp(x / 0.04)); return [[I.pelvis, 1 - t], [I.thL, t * l], [I.thR, t * (1 - l)]]; };
-    skinned(skinTube(bones, skirtRings, skirtW, { y0: HIP_Y, segs: 40, folds: female ? 0.03 : 0.045 }), body);
-    if (female) {
-      // wool apron dress over the shift, from the armpits to mid-calf, on two straps with brooches
-      const apron = woolSheen(o.tunic);
-      const aTop = [[0.0, 0.19, 0.155], [0.2, 0.192, 0.155], [0.38, 0.2, 0.16], [0.43, 0.2, 0.158]];
-      skinned(skinTube(bones, aTop, (s) => { const t = smooth(0.0, 0.12, s); return [[I.pelvis, 1 - t], [I.spine, t]]; }, { y0: HIP_Y, up: true, segs: 28 }), apron);
-      const aRings = []; for (let i = 0; i <= 8; i++) { const s = (i / 8) * 0.64; aRings.push([s, lerp(0.19, 0.27, smooth(0, 0.64, s) ** 0.8), lerp(0.158, 0.23, smooth(0, 0.64, s) ** 0.8)]); }
-      skinned(skinTube(bones, aRings, (s, x) => { const t = (s / 0.64) * 0.35, l = 1 / (1 + Math.exp(x / 0.04)); return [[I.pelvis, 1 - t], [I.thL, t * l], [I.thR, t * (1 - l)]]; }, { y0: HIP_Y, segs: 40, folds: 0.03 }), apron);
-    }
-    // arms: one tube from shoulder to wrist, bending at the elbow
-    for (const [side, ua, fa, lat] of [["back", "uaL", "faL", -ARM_LAT], ["front", "uaR", "faR", ARM_LAT]]) {
-      const rings = [[0, 0.064, 0.062], [0.06, 0.06, 0.058], [0.13, 0.056, 0.058], [0.22, 0.05, 0.05], [UA, 0.047, 0.045], [UA + 0.08, 0.044, 0.042], [UA + FA - 0.02, 0.036, 0.034], [UA + FA, 0.034, 0.032]];
-      skinned(skinTube(bones, rings, blend2(I[ua], I[fa], UA, 0.04), { x0: lat, y0: SHO_Y - 0.04, segs: 18 }), body);
-      void side;
-    }
-    // legs: trousers to the knee, wound leg wraps below (men only, the shift covers the woman's legs)
-    if (!female) for (const [th, sh, lat] of [["thL", "shL", -LEG_LAT], ["thR", "shR", LEG_LAT]]) {
-      const rings = [[0, 0.09, 0.09], [0.15, 0.08, 0.082], [TH - 0.05, 0.066, 0.068], [TH, 0.065, 0.066], [TH + 0.08, 0.062, 0.064], [TH + 0.2, 0.06, 0.062], [TH + SH - 0.06, 0.047, 0.048], [TH + SH, 0.046, 0.047]];
-      const geom = skinTube(bones, rings, blend2(I[th], I[sh], TH, 0.05), { x0: lat, y0: HIP_Y, segs: 18, groups: [[0, TH + 0.08, 0], [TH + 0.08, TH + SH, 1]] });
-      skinned(geom, [legM, wrapM]);
-    }
-    for (const [m, list] of parts) { const sm = new THREE.SkinnedMesh(list.length > 1 && !Array.isArray(m) ? mergeGeometries(list) : list[0], m); sm.castShadow = true; sm.receiveShadow = true; sm.frustumCulled = false; g.add(sm); sm.bind(skeleton); for (const extra of Array.isArray(m) ? list.slice(1) : []) { const sm2 = new THREE.SkinnedMesh(extra, m); sm2.castShadow = true; sm2.receiveShadow = true; sm2.frustumCulled = false; g.add(sm2); sm2.bind(skeleton); } }
-    this.skeleton = skeleton;
-
-    // belt, buckle, knife and trim ride on the pelvis bone; the cloak and brooches on the spine bone
-    const pelvisAcc = new THREE.Group(), spineAcc = new THREE.Group(); this.b.pelvis.add(pelvisAcc); this.b.spine.add(spineAcc);
-    if (female) {
-      for (const sd of [1, -1]) {
-        mesh(geo("strap2", () => new THREE.TorusGeometry(0.115, 0.014, 4, 12, Math.PI).rotateY(Math.PI / 2).scale(1, 0.5, 1.2)), woolSheen(o.tunic), spineAcc).position.set(sd * 0.09, 0.43, 0);
-        mesh(geo("brooch", () => new THREE.SphereGeometry(0.036, 14, 8, 0, TAU, 0, Math.PI / 2).rotateX(Math.PI / 2).scale(0.72, 1, 0.55)), plain(C.bronze, 0.35, 0.85), spineAcc).position.set(sd * 0.09, 0.43, 0.16);
-      }
-      for (let i = 0; i < 11; i++) { const t = i / 10; mesh(ball(0.0105), plain(["#b03a2e", "#2f6f9a", "#d9b44a", "#3e7a4a"][i % 4], 0.35), spineAcc, false).position.set(lerp(-0.085, 0.085, t), 0.405 - Math.sin(t * Math.PI) * 0.075, 0.167); }
-      mesh(geo("shawl2", () => new THREE.SphereGeometry(0.23, 20, 8, Math.PI * 0.62, Math.PI * 1.76, Math.PI * 0.3, Math.PI * 0.2).scale(1, 1.1, 0.78)), woolSheen(o.shawl), spineAcc).position.y = 0.39;
-      const third = new THREE.Group(); for (let k = 0; k < 3; k++) mesh(ball(0.016), plain(C.bronze, 0.35, 0.85), third, false).position.set(Math.cos((k / 3) * TAU) * 0.016, Math.sin((k / 3) * TAU) * 0.016, 0);
-      third.position.set(0, 0.48, 0.155); spineAcc.add(third);
-    } else {
-      mesh(geo("belt2", () => new THREE.TorusGeometry(1, 0.1, 6, 24).rotateX(Math.PI / 2).scale(0.172, 0.16, 0.138)), leather(), pelvisAcc).position.y = 0.005;
-      mesh(geo("buckle", () => new THREE.BoxGeometry(0.035, 0.032, 0.012)), plain(C.bronze, 0.35, 0.85), pelvisAcc).position.set(0, 0.005, 0.142);
-      const knife = new THREE.Group(); knife.position.set(-0.11, -0.01, 0.105); knife.rotation.set(0.1, 0.4, 0.5); pelvisAcc.add(knife);
-      mesh(geo("sheath", () => new THREE.BoxGeometry(0.03, 0.17, 0.018).translate(0, -0.085, 0)), leather(), knife);
-      mesh(geo("hilt", () => new THREE.CylinderGeometry(0.012, 0.013, 0.08, 8).translate(0, 0.04, 0)), plain("#8a6a46", 0.7), knife);
-      if (o.trim) {
-        mesh(geo("neckTrim2", () => new THREE.TorusGeometry(0.068, 0.009, 4, 20).rotateX(Math.PI / 2)), plain(o.trim, 0.5, 0.2), spineAcc).position.y = 0.6;
-      }
-    }
-    if (o.cloak) {
-      // a draped cloak: narrow at the shoulders, wide at the hem, with folds, open at the front right
-      const cloakGeo = geo("cloak3", () => {
-        const g2 = new THREE.CylinderGeometry(0.2, 0.36, 0.95, 40, 12, true, Math.PI * 0.32, Math.PI * 1.3), p = g2.attributes.position;
-        for (let i = 0; i < p.count; i++) {
-          const x = p.getX(i), y = p.getY(i), z = p.getZ(i), down = (0.475 - y) / 0.95, a = Math.atan2(x, z);
-          const fold = 1 + Math.sin(a * 9 + down * 2) * 0.06 * down; // folds deepen toward the hem
-          p.setXYZ(i, x * fold, y - Math.max(0, Math.sin(a - 0.4)) * 0.05 * down, z * fold * 0.85); // hem dips at the back
-        }
-        g2.translate(0, -0.42, 0); g2.computeVertexNormals(); return g2;
-      });
-      const cloakMat = mat(`cloak${o.cloak}`, () => { const m2 = woolSheen(o.cloak).clone(); m2.side = THREE.DoubleSide; return m2; });
-      mesh(cloakGeo, cloakMat, spineAcc).position.y = 0.6;
-      mesh(geo("ringPin", () => new THREE.TorusGeometry(0.028, 0.006, 6, 16)), plain(C.bronze, 0.35, 0.85), spineAcc).position.set(0.13, 0.53, 0.12);
-    }
-
-    // head
-    this.head = new THREE.Group(); g.add(this.head);
-    mesh(headGeo(female), skin, this.head);
-    mesh(limb(0.045, 0.052, 0.11), skin, this.head).position.y = -0.065;
-    for (const sd of [1, -1]) {
-      const ear = mesh(ball(0.022), skin, this.head); ear.position.set(sd * 0.086, -0.005, -0.008); ear.scale.set(0.4, 1, 0.75);
-      mesh(ball(0.0098), plain("#e8ded2", 0.25), this.head, false).position.set(sd * 0.031, 0.012, 0.08);
-      mesh(ball(0.0058), plain(o.eyes || "#4a5a6a", 0.2), this.head, false).position.set(sd * 0.031, 0.011, 0.0868);
-      mesh(geo("lid", () => new THREE.SphereGeometry(0.0108, 12, 6, 0, TAU, 0, Math.PI * 0.42)), skin, this.head, false).position.set(sd * 0.031, 0.0125, 0.0802);
-      mesh(geo("brow2", () => new THREE.CapsuleGeometry(0.004, 0.026, 2, 4).rotateZ(Math.PI / 2)), hairSolid, this.head, false).position.set(sd * 0.032, 0.033, 0.091);
-    }
-    const style = o.hairStyle || "collar";
-    const shell = (key, make, m, s = 1) => { const h = mesh(geo(key, make), m, this.head); h.scale.setScalar(s); return h; };
-    const cap = () => new THREE.SphereGeometry(0.106, 18, 10, 0, TAU, 0, Math.PI * 0.36);
-    shell("skull", cap, o.cap ? woolSheen(o.cap) : hairSolid).position.set(0, 0.016, -0.004);
-    if (!o.cap) shell("skull", cap, hairStrands, 1.05).position.set(0, 0.016, -0.004);
-    const backShort = () => ragged(new THREE.SphereGeometry(0.108, 28, 12, Math.PI * 0.78, Math.PI * 1.44, 0, Math.PI * 0.5), 0.018, 6);
-    const backLong = () => ragged(new THREE.SphereGeometry(0.11, 28, 14, Math.PI * 0.8, Math.PI * 1.4, 0, Math.PI * 0.66), 0.035, 7);
-    if (style === "fringe") {
-      shell("fringe", () => ragged(new THREE.SphereGeometry(0.11, 24, 8, Math.PI * 0.16, Math.PI * 0.68, Math.PI * 0.16, Math.PI * 0.22), 0.02, 8), hairStrands, 1.02).position.set(0, 0.012, 0.006);
-      shell("hairBackShort", backShort, hairSolid).position.y = 0.012; shell("hairBackShort", backShort, hairStrands, 1.05).position.y = 0.012;
-    } else if (style === "collar" || style === "knot") {
-      shell("hairBackLong", backLong, hairSolid).position.y = 0.01; shell("hairBackLong", backLong, hairStrands, 1.05).position.y = 0.01;
-      if (style === "collar") shell("hairNape", () => new THREE.CylinderGeometry(0.08, 0.09, 0.1, 14, 1, true, Math.PI * 0.75, Math.PI * 1.5), hairStrands).position.set(0, -0.06, -0.012);
-      else { mesh(ball(0.045), hairSolid, this.head).position.set(0, -0.03, -0.11); mesh(ball(0.048), hairStrands, this.head).position.set(0, -0.03, -0.11); }
-    } else { shell("hairBackShort", backShort, hairSolid).position.y = 0.012; shell("hairBackShort", backShort, hairStrands, 1.05).position.y = 0.012; }
-    if (o.cap) mesh(geo("cap", () => new THREE.SphereGeometry(0.113, 16, 8, 0, TAU, 0, Math.PI * 0.42).scale(1, 1.18, 1)), woolSheen(o.cap), this.head).position.y = 0.02;
-    if (o.beard === "full") { const bg = () => new THREE.SphereGeometry(0.08, 16, 10, 0, TAU, Math.PI * 0.42, Math.PI * 0.58).scale(1, 1.25, 0.9); mesh(geo("beard2", bg), hairSolid, this.head).position.set(0, -0.045, 0.03); const bs = mesh(geo("beard2", bg), hairStrands, this.head); bs.position.set(0, -0.045, 0.032); bs.scale.setScalar(1.06); }
-    if (o.beard === "full" || o.beard === "moustache") mesh(geo("moustache2", () => new THREE.CapsuleGeometry(0.008, 0.045, 3, 6).rotateZ(Math.PI / 2 - 0.25)), hairSolid, this.head, false).position.set(0, -0.034, 0.1);
-    if (o.beard === "moustache") mesh(ball(0.018), hairSolid, this.head, false).position.set(0, -0.09, 0.075);
-
-    // hands and turnshoes
-    this.hand = {}; this.foot = {};
-    for (const side of ["back", "front"]) {
-      this.hand[side] = mesh(handGeo(), skin, g, false); // small parts skip the shadow pass
-      if (o.trim) mesh(geo("cuff2", () => new THREE.TorusGeometry(0.036, 0.008, 4, 14).rotateX(Math.PI / 2)), plain(o.trim, 0.5, 0.2), this.hand[side]).position.y = 0.012;
-      this.foot[side] = mesh(shoeGeo(), leather(), g, false);
-      (this.shoulder ||= {})[side] = mesh(ball(female ? 0.056 : 0.07), body, g, false); this.shoulder[side].scale.set(1, 0.9, 0.95);
-    }
-    // fewer draw calls: merge the head and the clothing details into one mesh per material
-    bakeStatic(this.head); bakeStatic(pelvisAcc); bakeStatic(spineAcc);
-    pelvisAcc.traverse((o) => { o.castShadow = false; });
-    this.hands = { back: new THREE.Vector3(), front: new THREE.Vector3() };
-    this.mirror = 1;
-  }
-  // map a 2D pose point (cubits) to this figure's local frame
-  v(p, lat = 0, out = new THREE.Vector3()) { return out.set(lat, -p[1] * CUB, this.mirror * p[0] * CUB); }
-  setPose(pd) {
-    const b = this.b, H = this.v(pd.hip), S = this.v(pd.sh);
-    b.pelvis.position.copy(H); b.pelvis.rotation.set(-pd.kick * this.mirror * 0.6, 0, 0);
-    aim(b.spine, H, S, UP);
-    const hc = this.v([pd.sh[0] + 0.08 + pd.headX, pd.sh[1] - 0.42 + pd.headY]);
-    this.head.position.copy(hc); this.head.rotation.set(0, this.mirror < 0 ? Math.PI : 0, 0);
-    const a = new THREE.Vector3(), t = new THREE.Vector3(), c = new THREE.Vector3();
-    for (const [side, ua, fa, th, sh, lat] of [["back", "uaL", "faL", "thL", "shL", -ARM_LAT], ["front", "uaR", "faR", "thR", "shR", ARM_LAT]]) {
-      const arm = pd[`${side}Arm`], leg = pd[`${side}Leg`];
-      // arm: shoulder to elbow to wrist with fixed lengths, so hands land near their targets
-      a.copy(S).add(tq.set(lat, -0.04, 0));
-      this.shoulder[side].position.copy(a).add(tq.set(lat * 0.08, 0.005, 0));
-      this.v(arm.el, lat, t); aim(b[ua], a, t); a.add(t.sub(a).normalize().multiplyScalar(UA));
-      this.v(arm.hand, lat, t); aim(b[fa], a, t); const dir = t.sub(a).normalize(); a.addScaledVector(dir, FA);
-      this.hand[side].position.copy(a); this.hand[side].quaternion.copy(b[fa].quaternion);
-      this.hands[side].copy(a).addScaledVector(dir, 0.045);
-      // leg: hip to knee to ankle, the foot flat and pointing forward
-      const ll = lat * 0.5;
-      a.copy(H).add(tq.set(ll, 0, 0)); this.v(leg.knee, ll, t); this.v(leg.foot, ll, c); c.y += 0.07;
-      aim(b[th], a, t); a.add(t.sub(a).normalize().multiplyScalar(TH)); aim(b[sh], a, c); a.add(c.sub(a).normalize().multiplyScalar(SH));
-      if (this.o.dress) a.copy(c);
-      this.foot[side].position.set(a.x, Math.max(0, a.y - 0.07), a.z); this.foot[side].rotation.set(-(leg.toe || 0) * this.mirror, this.mirror < 0 ? Math.PI : 0, 0);
-    }
-  }
-}
 
 // ---------------- animals ----------------
 // Horses and dogs use the same kit as the people: a skinned body on a flat bone rig, a sculpted
@@ -478,7 +256,7 @@ const P2 = (x, y, lat = 0) => new THREE.Vector3(lat, -y * CUB, x * CUB);
 // build(group) returns state, frame(state, ph) poses it for phase ph in [0, 1)
 const ACTORS = {
   // shipwright clenching a rivet: hammer up, strike
-  wright: { period: 0.9, build(g) { const p = new Person(outfits.wright); g.add(p.g); const handle = mesh(stickGeo(0.016), woodMat(), g), head = box(0.05, 0.05, 0.12, plain(C.iron, 0.5, 0.7), g); return { p, handle, head }; },
+  wright: { period: 0.9, build(g) { const p = new Human(outfits.wright); g.add(p.g); const handle = mesh(stickGeo(0.016), woodMat(), g), head = box(0.05, 0.05, 0.12, plain(C.iron, 0.5, 0.7), g); return { p, handle, head }; },
     frame(s, ph) {
       const up = ph < 0.6 ? Math.sin((ph / 0.6) * Math.PI / 2) : 1 - (ph - 0.6) / 0.4;
       const hand = [lerp(0.95, 0.75, up), lerp(-2.75, -3.75, up)];
@@ -488,7 +266,7 @@ const ACTORS = {
     } },
   // caulker kneeling, pushing tarred wool into a seam
   caulk: { period: 1.4, build(g) {
-      const p = new Person(outfits.caulk); g.add(p.g);
+      const p = new Human(outfits.caulk); g.add(p.g);
       const pot = mesh(lathe("tarpot", [[0.001, 0], [0.12, 0], [0.13, 0.2], [0.11, 0.27], [0.001, 0.25]]), plain("#2b231d", 0.6), g); pot.position.copy(P2(-1.1, 0)); pot.position.x = -0.15;
       const iron = mesh(stickGeo(0.012), plain(C.iron, 0.5, 0.7), g); return { p, iron }; },
     frame(s, ph) {
@@ -498,30 +276,32 @@ const ACTORS = {
     } },
   // two crew carrying an oar on their shoulders (the main loop walks this group up and down the beach)
   oars: { period: 1.1, build(g) {
-      const a = new Person(outfits.oar2), b = new Person(outfits.oar1); a.g.position.copy(P2(2.3, 0)); b.g.position.copy(P2(6.6, 0)); g.add(a.g, b.g);
+      const a = new Human(outfits.oar2), b = new Human(outfits.oar1); a.g.position.copy(P2(2.3, 0)); b.g.position.copy(P2(6.6, 0)); g.add(a.g, b.g);
       const oar = mesh(stickGeo(0.03), woodMat(), g), blade = box(0.02, 0.13, 0.62, woodMat(), g); return { a, b, oar, blade }; },
     frame(s, ph) {
-      const oarY = -3.05 + Math.sin(ph * 2 * TAU) * 0.03;
-      s.a.setPose(walkPose(outfits.oar2, (ph + 0.25) % 1, 1.4, { frontArm: { el: [0.35, -2.6], hand: [0.25, -3.12] }, backArm: { el: [-0.25, -2.6], hand: [-0.15, -3.1] } }));
-      s.b.setPose(walkPose(outfits.oar1, ph, 1.4, { frontArm: { el: [0.3, -2.6], hand: [0.2, -3.1] }, backArm: { el: [-0.3, -2.6], hand: [-0.2, -3.08] } }));
+      // the oar rests on the carriers' shoulders, wherever their bodies put them
+      const top = ((s.a.shoulderY || 3.05 * CUB) + (s.b.shoulderY || 3.05 * CUB)) / 2 / CUB;
+      const oarY = -top + Math.sin(ph * 2 * TAU) * 0.03;
+      s.a.setPose(walkPose(outfits.oar2, (ph + 0.25) % 1, 1.4, { frontArm: { el: [0.35, oarY + 0.45], hand: [0.25, oarY - 0.07] }, backArm: { el: [-0.25, oarY + 0.45], hand: [-0.15, oarY - 0.05] } }));
+      s.b.setPose(walkPose(outfits.oar1, ph, 1.4, { frontArm: { el: [0.3, oarY + 0.45], hand: [0.2, oarY - 0.05] }, backArm: { el: [-0.3, oarY + 0.45], hand: [-0.2, oarY - 0.03] } }));
       const tail = P2(0.3, oarY + 0.05, 0.2), tip = P2(8.6, oarY - 0.05, 0.2); stick(s.oar, tail, tip);
       s.blade.position.copy(P2(0.85, oarY + 0.03, 0.2)); s.blade.quaternion.copy(s.oar.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2));
     } },
   // crewman on deck lifting a shield onto the rail
-  shield: { period: 2.4, build(g) { const p = new Person(outfits.shield); g.add(p.g); const sh = disc(C.shieldY); g.add(sh); return { p, sh }; },
+  shield: { period: 2.4, build(g) { const p = new Human(outfits.shield); g.add(p.g); const sh = disc(C.shieldY); g.add(sh); return { p, sh }; },
     frame(s, ph) {
       const up = (1 - Math.cos(ph * TAU)) / 2, hand = [lerp(0.55, 0.9, up), lerp(-2.0, -3.0, up)];
       s.p.setPose(pose(outfits.shield, { lean: 0.05 + up * 0.08, backArm: { el: [0.25, -2.45 - up * 0.3], hand: [hand[0] - 0.1, hand[1] + 0.25] }, frontArm: { el: [0.4, -2.35 - up * 0.3], hand: [hand[0] + 0.05, hand[1] - 0.15] } }));
       s.sh.position.copy(P2(hand[0] + 0.35, hand[1]));
     } },
   // steersman with a hand toward the tiller, looking out
-  steer: { period: 4, build(g) { const p = new Person(outfits.steer); g.add(p.g); return { p }; },
+  steer: { period: 4, build(g) { const p = new Human(outfits.steer); g.add(p.g); return { p }; },
     frame(s, ph) {
       const sway = Math.sin(ph * TAU);
       s.p.setPose(pose(outfits.steer, { lean: 0.05 * sway, headX: 0.03 * sway, frontArm: { el: [0.45, -2.3], hand: [0.85, -2.0 + sway * 0.04] }, backArm: { el: [0.3, -2.9], hand: [0.25, -3.45] } }));
     } },
   // crewman hauling on the halyard at the mast
-  rope: { period: 1.6, build(g) { const p = new Person(outfits.rope); g.add(p.g); const up = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g), down = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g); return { p, up, down }; },
+  rope: { period: 1.6, build(g) { const p = new Human(outfits.rope); g.add(p.g); const up = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g), down = mesh(stickGeo(0.011), plain("#8b6b43", 0.95), g); return { p, up, down }; },
     frame(s, ph) {
       const a = Math.sin(ph * TAU), b = Math.sin(ph * TAU + Math.PI);
       s.p.setPose(pose(outfits.rope, { lean: -0.12, backArm: { el: [0.3, -2.8], hand: [0.45, -3.2 + a * 0.45] }, frontArm: { el: [0.32, -2.75], hand: [0.45, -3.2 + b * 0.45] } }));
@@ -530,7 +310,7 @@ const ACTORS = {
     } },
   // a crewman on the beach heaves a sea chest up to another leaning over the rail
   chest: { period: 2.6, build(g, opts) {
-      const a = new Person(outfits.chest1), b = new Person(outfits.chest2); // b turns to face a
+      const a = new Human(outfits.chest1), b = new Human(outfits.chest2); // b turns to face a
       a.g.position.copy(P2(1.3, 0)); b.g.position.copy(P2(3.2, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const chest = new THREE.Group(); box(0.5, 0.34, 0.36, mat("chestwood", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xd6a979 })), chest); box(0.08, 0.1, 0.02, plain(C.iron, 0.5, 0.7), chest).position.set(0, 0.08, 0.185);
       chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest }; },
@@ -542,7 +322,7 @@ const ACTORS = {
     } },
   // two players at a gaming board set on a chest
   game: { period: 3.2, build(g) {
-      const a = new Person(outfits.game1), b = new Person(outfits.game2);
+      const a = new Human(outfits.game1), b = new Human(outfits.game2);
       a.g.position.copy(P2(0.9, 0)); b.g.position.copy(P2(3.3, 0)); b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const seat = mat("seat", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xb38a62 }));
       for (const z of [0.85, 3.35]) box(0.36, 0.44, 0.3, seat, g).position.set(0, 0.22, z * CUB);
@@ -559,7 +339,7 @@ const ACTORS = {
     } },
   // the cook stirring a pot that hangs from a tripod over the fire
   cook: { period: 2.2, build(g) {
-      const p = new Person(outfits.cook); g.add(p.g);
+      const p = new Human(outfits.cook); g.add(p.g);
       const apex = P2(1.5, -2.2), legM = plain("#5b4127", 0.9);
       for (let i = 0; i < 3; i++) { const a = (i / 3) * TAU + 0.4, foot = P2(1.5, 0).add(new THREE.Vector3(Math.cos(a) * 0.3, 0, Math.sin(a) * 0.3)); stick(mesh(stickGeo(0.022), legM, g), foot, apex); }
       stick(mesh(stickGeo(0.006), plain(C.iron, 0.5, 0.7), g), apex, P2(1.5, -1.45));
@@ -573,7 +353,7 @@ const ACTORS = {
   // a groom holding a grazing horse
   horse: { period: 5, build(g) {
       const h = buildQuad(g, HORSE);
-      const groom = new Person(outfits.groom); groom.g.position.set(0.75, 0, 1.25); groom.g.rotation.y = -Math.PI / 2 + 0.2; g.add(groom.g);
+      const groom = new Human(outfits.groom); groom.g.position.set(0.75, 0, 1.25); groom.g.rotation.y = -Math.PI / 2 + 0.2; g.add(groom.g);
       const rope = mesh(stickGeo(0.008), plain("#6b4a2c", 0.9), g);
       return { h, groom, rope }; },
     frame(s, ph) {
@@ -610,4 +390,4 @@ class Actor {
   }
 }
 
-export { Actor, ACTORS, Person, outfits, pose, walkPose };
+export { Actor, ACTORS, outfits, pose, walkPose };

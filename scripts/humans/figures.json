@@ -1,0 +1,19 @@
+{
+  "_note": "Bodies built by scripts/build-people.mjs. Hair, beards, skins and eyes are CC0 MakeHuman system assets and the CC0 bodyparts05 beard pack. Colours are set in src/people.js, so one body can be dressed in several outfits.",
+  "bodies": {
+    "m_wright": { "skin": "m", "phenotype": { "gender": 1.0, "age": 0.55, "muscle": 0.7, "weight": 0.6, "proportions": 0.6, "height": 0.45 },
+      "hair": "short02", "beard": "wdg_scruffy_beard", "skin_mhmat": "young_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes", "cap"] },
+    "m_collar": { "skin": "m", "phenotype": { "gender": 1.0, "age": 0.5, "muscle": 0.6, "weight": 0.45, "proportions": 0.55, "height": 0.5 },
+      "hair": "long01", "beard": "rehmanpolanski_moustache_viking", "skin_mhmat": "young_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes"] },
+    "m_fringe": { "skin": "m", "phenotype": { "gender": 1.0, "age": 0.5, "muscle": 0.65, "weight": 0.55, "proportions": 0.65, "height": 0.55 },
+      "hair": "short04", "beard": "rehmanpolanski_beard_viking", "skin_mhmat": "young_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes"] },
+    "m_young": { "skin": "m", "phenotype": { "gender": 1.0, "age": 0.35, "muscle": 0.55, "weight": 0.4, "proportions": 0.6, "height": 0.5 },
+      "hair": "long01", "beard": "", "skin_mhmat": "young_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes"] },
+    "m_short": { "skin": "m", "phenotype": { "gender": 1.0, "age": 0.45, "muscle": 0.6, "weight": 0.5, "proportions": 0.5, "height": 0.4 },
+      "hair": "short01", "beard": "wdg_scruffy_beard", "skin_mhmat": "young_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes"] },
+    "m_steer": { "skin": "mm", "phenotype": { "gender": 1.0, "age": 0.78, "muscle": 0.55, "weight": 0.6, "proportions": 0.55, "height": 0.5 },
+      "hair": "short01", "beard": "grinsegold_beard_sigmund_wip", "skin_mhmat": "middleage_caucasian_male", "garments": ["tunic", "trousers", "wraps", "shoes", "cloak"] },
+    "f_cook": { "skin": "f", "phenotype": { "gender": 0.0, "age": 0.5, "muscle": 0.5, "weight": 0.55, "proportions": 0.55, "height": 0.4, "cupsize": 0.5, "firmness": 0.5 },
+      "hair": "braid01", "beard": "", "skin_mhmat": "young_caucasian_female", "garments": ["underdress", "apron", "straps", "shoes", "shawl"] }
+  }
+}

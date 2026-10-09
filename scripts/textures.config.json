@@ -7,8 +7,15 @@
     "sand": "coast_sand_01",
     "wetsand": "damp_beach_sand",
     "grass": "leafy_grass",
-    "rock": "coast_land_rocks_01"
+    "rock": "coast_land_rocks_01",
+    "wool": "caban",
+    "twill": "poly_wool_herringbone",
+    "linen": "rough_linen",
+    "leather": "brown_leather"
   },
   "hdri": "kloofendal_48d_partly_cloudy_puresky",
-  "sizes": [1024, 2048]
+  "sizes": [
+    1024,
+    2048
+  ]
 }

@@ -1,0 +1,30 @@
+{
+  "bodies": {
+    "m_wright": "m_wright.glb",
+    "m_collar": "m_collar.glb",
+    "m_fringe": "m_fringe.glb",
+    "m_young": "m_young.glb",
+    "m_short": "m_short.glb",
+    "m_steer": "m_steer.glb",
+    "f_cook": "f_cook.glb"
+  },
+  "textures": {
+    "skin_m": "skin_m.webp",
+    "skin_mm": "skin_mm.webp",
+    "skin_f": "skin_f.webp",
+    "eye_brown": "eye_brown.webp",
+    "eye_blue": "eye_blue.webp",
+    "eye_grey": "eye_grey.webp",
+    "hair_short02": "hair_short02.webp",
+    "hair_long01": "hair_long01.webp",
+    "hair_short04": "hair_short04.webp",
+    "hair_short01": "hair_short01.webp",
+    "hair_braid01": "hair_braid01.webp",
+    "beard_wdg_scruffy_beard": "beard_wdg_scruffy_beard.webp",
+    "beard_rehmanpolanski_moustache_viking": "beard_rehmanpolanski_moustache_viking.webp",
+    "beard_rehmanpolanski_beard_viking": "beard_rehmanpolanski_beard_viking.webp",
+    "beard_grinsegold_beard_sigmund_wip": "beard_grinsegold_beard_sigmund_wip.webp",
+    "brow": "brow.webp",
+    "lash": "lash.webp"
+  }
+}

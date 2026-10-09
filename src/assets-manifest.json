@@ -111,6 +111,62 @@
         "1024": "tex/rock_arm_1k.webp",
         "2048": "tex/rock_arm_2k.webp"
       }
+    },
+    "wool": {
+      "diff": {
+        "1024": "tex/wool_diff_1k.webp",
+        "2048": "tex/wool_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/wool_nor_1k.webp",
+        "2048": "tex/wool_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/wool_arm_1k.webp",
+        "2048": "tex/wool_arm_2k.webp"
+      }
+    },
+    "twill": {
+      "diff": {
+        "1024": "tex/twill_diff_1k.webp",
+        "2048": "tex/twill_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/twill_nor_1k.webp",
+        "2048": "tex/twill_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/twill_arm_1k.webp",
+        "2048": "tex/twill_arm_2k.webp"
+      }
+    },
+    "linen": {
+      "diff": {
+        "1024": "tex/linen_diff_1k.webp",
+        "2048": "tex/linen_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/linen_nor_1k.webp",
+        "2048": "tex/linen_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/linen_arm_1k.webp",
+        "2048": "tex/linen_arm_2k.webp"
+      }
+    },
+    "leather": {
+      "diff": {
+        "1024": "tex/leather_diff_1k.webp",
+        "2048": "tex/leather_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/leather_nor_1k.webp",
+        "2048": "tex/leather_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/leather_arm_1k.webp",
+        "2048": "tex/leather_arm_2k.webp"
+      }
     }
   },
   "sizes": [

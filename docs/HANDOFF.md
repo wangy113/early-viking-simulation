@@ -202,3 +202,10 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - Low: 1K textures, a cheap glossy sea with no reflection pass, 1024 shadow map, lighter terrain, pixel ratio 1. Medium: 1K textures, reflecting sea at 512, 2048 shadows. High: 2K textures, reflecting sea at 1024.
 - Each person's head and clothing details are merged by material, body parts sharing a material are one skinned mesh, and the shields are three meshes.
 - Measured in headless Chromium (1280x720): download 29.4 MB on High and 9.3 MB on Low and Medium. Draw calls 480 to 840 on High and 250 to 440 on Low, down from 690 to 1390. Software rendering cannot give real frame rates, so the Chromebook test is still needed.
+
+## 2026-10-09: Realistic people
+- The user asked to make the humans real first. Free Daz models were ruled out by their licence (no web or interactive use). The people are now MakeHuman bodies, which are CC0.
+- `scripts/build-people.mjs` runs Blender 4.2 with MPFB headless for each body in `scripts/humans/figures.json`, then compresses the result with meshopt. The output is in `public/assets/people/` (about 2.3 MB of bodies and 2.5 MB of textures). Setup steps are in `scripts/humans/README.md`.
+- The Viking clothing is built in `scripts/humans/make_human.py` from each body's surface: shells for the tunic, trousers, leg wraps, shoes, cap, underdress, straps and shawl, and fitted flared rings for skirts, the apron dress and the cloak. Body faces under the clothing are removed. Anchor nodes on the bones carry the brooches, beads, buckle, knife and cloak pin.
+- `src/humans.js` loads the bodies, assigns materials (MakeHuman skin and hair, Poly Haven wool, twill, linen and leather) and poses them from the same `pose()` data. The spine bends toward the shoulder point, arms and legs use two-bone reach with the proof of concept's elbows and knees as hints, feet stay flat, and the fingers close into a grip.
+- Fixed a bug from M5: a comment had swallowed the terrain rotation, so the beach was missing on the live site.
