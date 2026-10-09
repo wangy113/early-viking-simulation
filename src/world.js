@@ -4,7 +4,7 @@ import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { TAU, clamp, rngFrom } from "./util.js";
 import { TIER, renderer, scene, camera, sun, add } from "./core.js";
 import { SHIP, H, woodMat, std } from "./ship.js";
-import { pbr, file, skyBackdrop, skyLight, sunDirection } from "./textures.js";
+import { pbr, file, skyBackdrop, skyLight, sunDirection, treeAtlas, treeInfo } from "./textures.js";
 
 const SEA_Y = -0.25, SHORE_Z = -16; // the beach sits about 0.3 m above the water
 
@@ -136,22 +136,65 @@ const foam = (() => {
 })();
 
 // ---------------- woods inland ----------------
-// simple instanced trees on the rising ground behind the beach, mostly seen from a distance
+// Real spruce-like firs and pines (Poly Haven, CC0), rendered in Blender from 8 directions under
+// this scene's sky. Each tree is a flat card that turns to face the camera and shows the render
+// taken from the nearest direction, blended with the next one, so walking past a tree shows
+// its other sides. Hundreds of trees cost two triangles each.
 {
-  const R = rngFrom(655), crown = mergeGeometries([0, 1, 2].map((k) => new THREE.ConeGeometry(0.9 - k * 0.25, 0.75, 9).translate(0, -0.55 + k * 0.42, 0))), trunk = new THREE.CylinderGeometry(0.12, 0.18, 1, 6).translate(0, 0.5, 0);
-  const N = 1400, crowns = new THREE.InstancedMesh(crown, std({ color: 0xffffff, roughness: 0.95 }), N), trunks = new THREE.InstancedMesh(trunk, std({ color: 0x4a3a2c, roughness: 1 }), N);
-  const o = new THREE.Object3D(), c = new THREE.Color(); let n = 0;
-  for (let i = 0; i < 6000 && n < N; i++) {
+  const R = rngFrom(655), N = 1800, kinds = treeInfo.trees;
+  const geo = new THREE.InstancedBufferGeometry().copy(new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0));
+  const kind = new Float32Array(N), yaw = new Float32Array(N), size = new Float32Array(N * 2), base = new Float32Array(N * 3);
+  let n = 0;
+  for (let i = 0; i < 9000 && n < N; i++) {
     const x = (R() - 0.5) * 900, z = 80 + R() * 340;
     const dens = 0.5 + 0.5 * Math.sin(x * 0.013 + 1) * Math.sin(z * 0.02); if (R() > dens || (Math.abs(x + 14) < 18 && z < 60)) continue;
-    const y = groundY(x, z), h = 10 + R() * 9, w = h * (0.2 + R() * 0.07);
-    o.position.set(x, y, z); o.rotation.set(0, R() * 6, 0); o.scale.set(1, h * 0.4, 1); o.updateMatrix(); trunks.setMatrixAt(n, o.matrix);
-    o.position.set(x, y + h * 0.62, z); o.scale.set(w, h * 0.6, w); o.updateMatrix(); crowns.setMatrixAt(n, o.matrix);
-    crowns.setColorAt(n, c.setHSL(0.27 + R() * 0.06, 0.25 + R() * 0.15, 0.08 + R() * 0.05)); n++;
+    const k = Math.floor(R() * kinds.length), s = 0.75 + R() * 0.45;
+    kind[n] = k; yaw[n] = R() * Math.PI * 2; size[n * 2] = kinds[k].width * s; size[n * 2 + 1] = kinds[k].height * s;
+    base.set([x, groundY(x, z) - 0.15, z], n * 3); n++;
   }
-  crowns.count = trunks.count = n;
-  crowns.castShadow = false; crowns.receiveShadow = false; trunks.castShadow = false;
-  scene.add(crowns, trunks);
+  geo.instanceCount = n;
+  geo.setAttribute("aBase", new THREE.InstancedBufferAttribute(base, 3));
+  geo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
+  geo.setAttribute("aYaw", new THREE.InstancedBufferAttribute(yaw, 1));
+  geo.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 2));
+  const mat = new THREE.ShaderMaterial({
+    uniforms: { atlas: { value: treeAtlas() }, rows: { value: kinds.length }, light: { value: 1.0 }, ...THREE.UniformsLib.fog },
+    fog: true,
+    vertexShader: `
+      attribute vec3 aBase; attribute float aKind, aYaw; attribute vec2 aSize;
+      varying vec2 vUv; varying float vKind, vFrame;
+      #include <fog_pars_vertex>
+      void main() {
+        vec3 toCam = cameraPosition - aBase; toCam.y = 0.0; toCam = normalize(toCam + vec3(1e-4, 0.0, 0.0));
+        vec3 right = vec3(toCam.z, 0.0, -toCam.x);
+        vec3 p = aBase + right * position.x * aSize.x + vec3(0.0, position.y * aSize.y, 0.0);
+        // which of the 8 renders: the view direction around the tree, in eighths of a turn
+        float a = atan(toCam.x, toCam.z) - aYaw;
+        vFrame = mod(a / 0.78539816 + 16.0, 8.0);
+        vUv = uv; vKind = aKind;
+        vec4 mvPosition = viewMatrix * vec4(p, 1.0);
+        gl_Position = projectionMatrix * mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `
+      uniform sampler2D atlas; uniform float rows, light;
+      varying vec2 vUv; varying float vKind, vFrame;
+      #include <common>
+      #include <fog_pars_fragment>
+      vec4 frame(float f) { vec2 uv = vec2((mod(f, 8.0) + vUv.x) / 8.0, 1.0 - (vKind + 1.0 - vUv.y) / rows); return texture2D(atlas, uv); }
+      void main() {
+        float f0 = floor(vFrame), t = vFrame - f0;
+        vec4 c = mix(frame(f0), frame(f0 + 1.0), smoothstep(0.25, 0.75, t));
+        if (c.a < 0.5) discard;
+        gl_FragColor = vec4(c.rgb * light, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        #include <fog_fragment>
+      }`,
+  });
+  const woods = new THREE.Mesh(geo, mat);
+  woods.frustumCulled = false;
+  scene.add(woods);
 }
 
 // ---------------- wooded hills across the water ----------------

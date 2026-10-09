@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
 import manifest from "./assets-manifest.json";
+import trees from "./trees-manifest.json";
 import { TIER } from "./quality.js";
 import { preloadPeople } from "./humans.js";
 
@@ -10,12 +11,13 @@ const base = import.meta.env.BASE_URL + "assets/";
 const loaded = new Map();
 let hdr = null;
 const SIZE = TIER.tex; // texture size for this quality level
+const treeFile = trees.atlas[SIZE >= 2048 ? "2k" : "1k"];
 
 function preloadAssets(onProgress = () => {}) {
   const manager = new THREE.LoadingManager();
   manager.onProgress = (_url, done, total) => onProgress(done / total);
   const tl = new THREE.TextureLoader(manager);
-  const files = new Set([manifest.sky.backdrop, "tex/waternormals.jpg"]);
+  const files = new Set([manifest.sky.backdrop, "tex/waternormals.jpg", treeFile]);
   for (const set of Object.values(manifest.textures)) for (const bySize of Object.values(set)) files.add(bySize[SIZE]);
   return new Promise((resolve, reject) => {
     manager.onLoad = () => resolve();
@@ -47,6 +49,8 @@ function pbr(role, { size = SIZE, ...opts } = {}) {
   return { map: file(set.diff[size], { ...opts, srgb: true }), normalMap: file(set.nor[size], opts), aoMap: arm, roughnessMap: arm, metalnessMap: arm };
 }
 
+// the woods: renders of real trees from 8 directions (see scripts/build-trees.mjs)
+const treeAtlas = () => { const t = file(treeFile, { srgb: true, wrap: false }); t.anisotropy = 4; return t; };
 const skyBackdrop = () => file(manifest.sky.backdrop, { srgb: true, wrap: false });
 const skyLight = () => hdr;
 
@@ -61,4 +65,4 @@ function sunDirection() {
   return new THREE.Vector3(Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon));
 }
 
-export { preloadAssets, file, pbr, skyBackdrop, skyLight, sunDirection };
+export { preloadAssets, file, pbr, skyBackdrop, skyLight, sunDirection, treeAtlas, trees as treeInfo };

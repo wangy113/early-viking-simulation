@@ -18,6 +18,10 @@ All textures and sky images come from [Poly Haven](https://polyhaven.com) and ar
 | leather | Brown Leather | Rob Tuytel | https://polyhaven.com/a/brown_leather |
 | sky | Kloofendal 48d Partly Cloudy (Pure Sky) | Greg Zaal, Jarod Guest | https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky |
 
+## Trees
+
+The woods are renders of Fir Tree 01 and Pine Tree 01 by Rob Tuytel and Rico Cilliers, from Poly Haven, released under CC0. https://polyhaven.com/a/fir_tree_01 and https://polyhaven.com/a/pine_tree_01. They were rendered from 8 directions by `scripts/trees/render_impostors.py`.
+
 ## People
 
 The bodies, skins, eyes, eyebrows, eyelashes and hair of the people are MakeHuman system assets, released under CC0 by Data Collection AB, Joel Palmius and Jonas Hauquier. https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html

@@ -225,3 +225,7 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - `docs/sme-review.md`: every claim in the stops and the About page with its tag, status (verified or check), sources, things the scene shows without saying, and questions for a subject expert.
 - `docs/exploration-activity.md`: "Evidence or imagination?", with an objective, before, during and after tasks, a discussion prompt and five quiz questions with answers.
 - `docs/canvas-link.md`: the link, suggested link text and the deep links.
+
+## 2026-10-09: Real trees and people touch-ups
+- The woods use Poly Haven's Fir Tree 01 and Pine Tree 01 (CC0). `scripts/trees/render_impostors.py` renders two firs and three pines from 8 directions under the scene's sky in Blender, and `scripts/build-trees.mjs` packs them into `public/assets/trees/` (0.8 MB on Low, 2.6 MB otherwise). In `src/world.js` each tree is one card that turns to the camera and blends the two nearest renders, so 1,800 trees cost two triangles each.
+- People: tunic skirts blend widely across the middle, so they hang over the lap when seated. The cook's linen skirt is now built only below the apron dress and shares its weighting, so it never pokes through. Her shawl is thinner, the steersman's cloak covers his tunic, and wool and linen are matt.

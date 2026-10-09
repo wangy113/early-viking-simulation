@@ -38,7 +38,8 @@ function cloth(role, repeat) {
 // Wool and linen take their colour from the palette and their weave from the photo-scanned maps.
 const fabric = (role, hex, repeat = 2.5) => mat(`f${role}${hex}`, () => {
   const m = cloth(role, repeat);
-  return new THREE.MeshPhysicalMaterial({ color: hex, normalMap: m.normalMap, roughnessMap: m.roughnessMap, roughness: 1, sheen: role === "linen" ? 0.2 : 0.45, sheenRoughness: 0.8, sheenColor: new THREE.Color(hex).lerp(new THREE.Color("#ffffff"), 0.1), side: THREE.DoubleSide });
+  // wool and linen are matt: no gloss, and a soft sheen in the cloth's own colour
+  return new THREE.MeshPhysicalMaterial({ color: hex, normalMap: m.normalMap, roughness: 0.97, sheen: role === "linen" ? 0.15 : 0.3, sheenRoughness: 0.85, sheenColor: new THREE.Color(hex).multiplyScalar(0.8), side: THREE.DoubleSide });
 });
 const leather = () => mat("leather", () => { const m = cloth("leather", 3); return new THREE.MeshStandardMaterial({ map: m.map, color: "#9a8070", normalMap: m.normalMap, roughnessMap: m.roughnessMap, roughness: 1 }); });
 const skin = (key) => mat(`skin${key}`, () => new THREE.MeshPhysicalMaterial({ map: tex(`skin_${key}`), roughness: 0.55, sheen: 0.3, sheenRoughness: 0.5, sheenColor: new THREE.Color("#f0c0a8") }));

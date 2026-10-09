@@ -281,10 +281,19 @@ if g.get("tunic"):
     ring_skirt("skirt", beltZ + 0.03, kneeZ + 0.07, 0.022, 0.07, skirt_weights, pleats=0.012)
     ring_skirt("belt", beltZ + 0.018, beltZ - 0.018, 0.042, 0.0, lambda t, x, y: [("pelvis", 1.0)], rows=1)
 if g.get("underdress"):
-    ring_skirt("underskirt", beltZ + 0.03, ankleZ + 0.02, 0.018, 0.08, long_skirt_weights, rows=22, pleats=0.006)
+    pass  # the linen skirt is added with the apron dress, see below
     covered |= {i for i in range(len(WPOS)) if region(i, LEG | {"pelvis"}, ankleZ + 0.02)}
 if g.get("apron"):
-    ring_skirt("apron", armpitZ + 0.02, ankleZ + 0.1, 0.045, 0.11, lambda t, x, y: [(b, w * (1 - smoothstep(0.0, 0.3, t))) for b, w in [("spine_03", 1.0)]] + [(b, w * smoothstep(0.0, 0.3, t)) for b, w in long_skirt_weights(max(0, (t - 0.3) / 0.7), x, y)], rows=26)
+    # The apron dress and the linen skirt below it share one weighting by height, so they move
+    # together and the linen never pokes through. Only the linen below the apron's hem is built.
+    apTop, apHem = armpitZ + 0.02, ankleZ + 0.1
+    def dress_w(z, x, y):
+        t = (apTop - z) / (apTop - apHem)
+        up = 1 - smoothstep(0.0, 0.3, t)
+        return [("spine_03", up)] + [(b, w * (1 - up)) for b, w in long_skirt_weights(max(0, (t - 0.3) / 0.7), x, y)]
+    ring_skirt("apron", apTop, apHem, 0.034, 0.06, lambda t, x, y: dress_w(apTop + (apHem - apTop) * t, x, y), rows=26)
+    lTop, lHem = apHem + 0.14, ankleZ + 0.02
+    ring_skirt("underskirt", lTop, lHem, 0.02, 0.0, lambda t, x, y: dress_w(lTop + (lHem - lTop) * t, x, y), rows=4)
 if g.get("cloak"):
     # a rectangular wool cloak: it hangs from the shoulders down the back and wraps the
     # sides, open at the front, where a ringed pin holds it at the right shoulder
@@ -294,7 +303,7 @@ if g.get("cloak"):
         up = 1 - smoothstep(0.0, 0.3, t)
         return [("spine_03", 0.8 * up), ("clavicle_l", 0.1 * up), ("clavicle_r", 0.1 * up), ("spine_02", (1 - up) * 0.45), ("spine_01", (1 - up) * 0.3), ("pelvis", (1 - up) * 0.25)]
     span = lambda a: math.sin(a) > -0.45   # MakeHuman's back is +y, so this keeps the back and sides
-    ring_skirt("cloak", shTop, kneeZ + 0.05, 0.035, 0.05, cloak_w, rows=24, pleats=0.012, span=span)
+    ring_skirt("cloak", shTop, kneeZ + 0.05, 0.05, 0.1, cloak_w, rows=24, pleats=0.012, span=span)
     envelope.arm_above = 99.0
 if g.get("straps"):
     # apron dress straps over the shoulders, front and back
