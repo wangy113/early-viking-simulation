@@ -164,8 +164,10 @@ def envelope(z0, z1, cx, cy, bins=36, exclude=ARM | {"hand_l", "hand_r"}):
 
 envelope.arm_above = 99.0
 
-def ring_skirt(name, top, hem, margin, flare, weights, bins=48, rows=None, pleats=0.0, span=None):
-    """Flared tube from z=top down to z=hem. weights(t, x, y) gives [(bone, w)]."""
+def ring_skirt(name, top, hem, margin, flare, weights, bins=48, rows=None, pleats=0.0, span=None, top_margin=None, ease=0.0):
+    """Flared tube from z=top down to z=hem. weights(t, x, y) gives [(bone, w)].
+    top_margin fits the top edge closer to the body. ease lets the cloth come back in below the
+    widest point by up to that many meters per meter of height, for a fitted dress."""
     cx = 0.0
     cy = sum(WPOS[i].y for i in range(len(WPOS)) if top - 0.1 < WPOS[i].z < top) / max(1, sum(1 for p in WPOS if top - 0.1 < p.z < top))
     rows = rows or max(4, int((top - hem) / 0.035))
@@ -179,12 +181,14 @@ def ring_skirt(name, top, hem, margin, flare, weights, bins=48, rows=None, pleat
         t = j / rows
         z = top + (hem - top) * t
         env = envelope(z - 0.03, z + 0.03, cx, cy, bins)
-        # cloth does not follow the body back in below the widest point
-        running = [max(running[k], env[k]) for k in range(bins)]
+        # cloth does not follow the body back in below the widest point, unless eased in
+        step = (top - hem) / rows * ease if j else 0.0
+        running = [max(running[k] - step, env[k]) for k in range(bins)]
+        m = margin if top_margin is None else top_margin + (margin - top_margin) * smoothstep(0.0, 0.2, t)
         row = []
         for k in range(bins):
             a = -math.pi + (k + 0.5) / bins * 2 * math.pi
-            rr = running[k] + margin + flare * t * t + pleats * t * (math.sin(a * 9 + 1.3) * 0.6 + math.sin(a * 5 + 0.4) * 0.4)
+            rr = running[k] + m + flare * t * t + pleats * t * (math.sin(a * 9 + 1.3) * 0.6 + math.sin(a * 5 + 0.4) * 0.4)
             p = Vector((cx + math.cos(a) * rr, cy + math.sin(a) * rr, z))
             v = bm.verts.new(mw.inverted() @ p)
             for bone, w in weights(t, p.x, p.y - cy):
@@ -291,7 +295,7 @@ if g.get("apron"):
         t = (apTop - z) / (apTop - apHem)
         up = 1 - smoothstep(0.0, 0.3, t)
         return [("spine_03", up)] + [(b, w * (1 - up)) for b, w in long_skirt_weights(max(0, (t - 0.3) / 0.7), x, y)]
-    ring_skirt("apron", apTop, apHem, 0.034, 0.06, lambda t, x, y: dress_w(apTop + (apHem - apTop) * t, x, y), rows=26)
+    ring_skirt("apron", apTop, apHem, 0.03, 0.08, lambda t, x, y: dress_w(apTop + (apHem - apTop) * t, x, y), rows=26, top_margin=0.012, ease=0.18, pleats=0.008)
     lTop, lHem = apHem + 0.14, ankleZ + 0.02
     ring_skirt("underskirt", lTop, lHem, 0.02, 0.0, lambda t, x, y: dress_w(lTop + (lHem - lTop) * t, x, y), rows=4)
 if g.get("cloak"):

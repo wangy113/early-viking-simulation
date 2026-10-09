@@ -20,7 +20,7 @@ All textures and sky images come from [Poly Haven](https://polyhaven.com) and ar
 
 ## Trees
 
-The woods are renders of Fir Tree 01 and Pine Tree 01 by Rob Tuytel and Rico Cilliers, from Poly Haven, released under CC0. https://polyhaven.com/a/fir_tree_01 and https://polyhaven.com/a/pine_tree_01. They were rendered from 8 directions by `scripts/trees/render_impostors.py`.
+The woods are renders of Pine Tree 01, Fern 02 and Pine Sapling Small by Rob Tuytel and Rico Cilliers, from Poly Haven, released under CC0. https://polyhaven.com/a/pine_tree_01, https://polyhaven.com/a/fern_02 and https://polyhaven.com/a/pine_sapling_small. They were rendered from 8 directions by `scripts/trees/render_impostors.py`.
 
 ## People
 

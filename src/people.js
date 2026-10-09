@@ -14,7 +14,7 @@ import { rudder } from "./ship.js";
 const C = {
   skin: "#c4927a", shieldY: 0xd7a531, oak: 0xa77a4c, iron: 0x4b4846, bronze: "#a8833f",
   hairBrown: "#5a3d28", hairDark: "#33251b", hairFair: "#b08a52", hairRed: "#8a4a2a", hairGrey: "#8f8b84",
-  undyedBrown: "#7b6450", undyedGrey: "#8a857a", undyedLight: "#b6aa92", woad: "#4f6886", woadDark: "#3c4f68", green: "#5f6d45", madder: "#8e3a2a", linen: "#cfc4ad",
+  undyedBrown: "#7b6450", undyedGrey: "#8a857a", undyedLight: "#b6aa92", woad: "#3f5878", woadDark: "#2e4260", green: "#5f6d45", madder: "#8e3a2a", linen: "#cfc4ad",
 };
 // hair: "fringe" (short nape, long fringe), "collar" (to the collar), "short", "knot" (tied at the nape)
 // beard: "full", "moustache" or none
@@ -30,7 +30,7 @@ const outfits = {
   chest2: { body: "m_short", tunic: C.green, leg: "#6b5a48", wrap: "#4e4237", hair: C.hairFair, hairStyle: "collar", beard: "moustache" },
   game1: { body: "m_fringe", tunic: "#7d4a36", leg: "#6b5a48", wrap: "#4e4237", hair: C.hairRed, hairStyle: "fringe", beard: "full" },
   game2: { body: "m_young", tunic: C.woad, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairDark, hairStyle: "collar" },
-  cook: { body: "f_cook", dress: true, under: C.linen, tunic: C.woad, shawl: "#7a5f48", hair: C.hairFair, hairStyle: "knot" },
+  cook: { body: "f_cook", dress: true, under: C.linen, tunic: C.woadDark, shawl: "#7a5f48", hair: C.hairFair, hairStyle: "knot" },
   groom: { body: "m_young", tunic: C.undyedLight, leg: C.undyedGrey, wrap: "#5a4a3a", hair: C.hairBrown, hairStyle: "fringe" },
 };
 
@@ -236,7 +236,7 @@ const HORSE = {
   head: [0.56, 0.125, 0.07, 0.62, 0.25], tailRoot: [0, 1.2, -0.8],
 };
 const DOG = {
-  kind: "dog", coat: "#9a7a55", points: "#7a5e40", hair: "#6e5538", mane: 0, forelock: false, eye: 0.009, ear: [0.025, 0.07],
+  kind: "dog", coat: "#86786a", points: "#6a5e52", hair: "#5e5246", mane: 0, forelock: false, eye: 0.009, ear: [0.025, 0.07],
   body: [[-0.32, 0.47, 0.38, 0.03], [-0.29, 0.52, 0.33, 0.09], [-0.18, 0.53, 0.33, 0.1], [-0.02, 0.52, 0.34, 0.1], [0.14, 0.54, 0.3, 0.11], [0.26, 0.55, 0.32, 0.1], [0.33, 0.5, 0.36, 0.06]],
   neckBase: [0, 0.46, 0.25], neckSeg: 0.08, neckRings: [[0, 0.07, 0.09], [0.08, 0.06, 0.07], [0.16, 0.05, 0.06]],
   legs: [["lf", 0.22, -0.06, 0.42, 0.22, 0.03, 0.04, 0.025, 0.02], ["rf", 0.22, 0.06, 0.42, 0.22, 0.03, 0.04, 0.025, 0.02], ["lh", -0.24, -0.065, 0.44, 0.2, 0.03, 0.05, 0.026, 0.02], ["rh", -0.24, 0.065, 0.44, 0.2, 0.03, 0.05, 0.026, 0.02]],
@@ -244,9 +244,16 @@ const DOG = {
 };
 
 // ---------------- props ----------------
+// incised 13 by 13 grid lines for the gaming board, drawn once
+function taflTex() {
+  const c = document.createElement("canvas"); c.width = c.height = 256; const x = c.getContext("2d");
+  x.strokeStyle = "rgba(40,26,14,0.75)"; x.lineWidth = 1.6;
+  for (let i = 0; i <= 13; i++) { const p = 4 + (i * 248) / 13; x.beginPath(); x.moveTo(p, 4); x.lineTo(p, 252); x.stroke(); x.beginPath(); x.moveTo(4, p); x.lineTo(252, p); x.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
 function disc(color) {
   const g = new THREE.Group();
-  mesh(geo("shieldDisc", () => new THREE.CylinderGeometry(0.44, 0.44, 0.018, 32).rotateX(Math.PI / 2)), plain(color, 0.75), g);
+  mesh(geo("shieldDisc", () => new THREE.CylinderGeometry(0.47, 0.47, 0.018, 32).rotateX(Math.PI / 2)), plain(color, 0.75), g);
   mesh(geo("shieldBoss", () => new THREE.SphereGeometry(0.075, 12, 6, 0, TAU, 0, Math.PI / 2).scale(1, 0.55, 1).rotateX(Math.PI / 2).translate(0, 0, 0.009)), plain("#6a6460", 0.5, 0.6), g);
   return g;
 }
@@ -294,8 +301,9 @@ const ACTORS = {
         const z = p.g.position.z + 0.24, swing = Math.sin(q * TAU) * 0.1;
         p.setPose(walkPose(o, q, 1.4, { frontArm: { local: inP(p, V(lat, y - 0.035, z)), pole: V(0.45, 1.05, 0.05) }, backArm: loose(p, -1, swing) }));
       }
-      stick(s.oar, V(lat, y + 0.01, 0.14), V(lat, y - 0.02, 3.96));
-      s.blade.position.set(lat, y - 0.015, 0.4); s.blade.quaternion.copy(s.oar.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2));
+      // the one complete Gokstad oar is 5.3 m long (Nicolaysen 1882, p. 38)
+      stick(s.oar, V(lat, y + 0.01, -0.95), V(lat, y - 0.02, 4.35));
+      s.blade.position.set(lat, y - 0.012, -0.62); s.blade.quaternion.copy(s.oar.quaternion).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2));
     } },
   // crewman on deck lifting a shield onto the rail
   shield: { period: 2.4, build(g) { const p = new Human(outfits.shield); g.add(p.g); const sh = disc(C.shieldY); g.add(sh); return { p, sh }; },
@@ -353,9 +361,18 @@ const ACTORS = {
       const seat = mat("seat", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xb38a62 }));
       for (const z of [0.55, 3.65]) box(0.36, 0.44, 0.3, seat, g).position.set(0, 0.22, z * CUB);
       box(0.34, 0.44, 0.4, seat, g).position.set(0, 0.22, 2.1 * CUB);
-      box(0.46, 0.04, 0.46, woodMat(), g).position.set(0, 0.46, 2.1 * CUB);
-      // horn playing pieces, light and dark
-      for (let i = 0; i < 14; i++) { const r = new THREE.Vector2(((i * 37) % 9) - 4, ((i * 53) % 9) - 4).multiplyScalar(0.045); mesh(geo("piece", () => new THREE.CylinderGeometry(0.012, 0.016, 0.03, 8)), plain(i % 3 ? "#efe4cf" : "#3a2f28", 0.5), g, false).position.set(r.x, 0.495, 2.1 * CUB + r.y); }
+      // the Gokstad board has a 13 by 13 grid on one side (Nicolaysen 1882, p. 46)
+      const top = box(0.46, 0.04, 0.46, woodMat(), g); top.position.set(0, 0.46, 2.1 * CUB);
+      const grid = mesh(geo("tafl", () => new THREE.PlaneGeometry(0.44, 0.44).rotateX(-Math.PI / 2)), mat("tafl", () => new THREE.MeshStandardMaterial({ map: taflTex(), transparent: true, roughness: 0.8, depthWrite: false })), g, false);
+      grid.position.set(0, 0.481, 2.1 * CUB);
+      // horn pieces in a starting layout for a tafl game: a king and his defenders in the middle, attackers at the edges
+      const cell = 0.44 / 13, at = (i, j) => [(i - 6) * cell, (j - 6) * cell], light = [], dark = [];
+      for (const [i, j] of [[6, 4], [6, 5], [6, 7], [6, 8], [4, 6], [5, 6], [7, 6], [8, 6], [5, 5], [5, 7], [7, 5], [7, 7]]) light.push(at(i, j));
+      for (const e of [0, 12]) for (const k of [4, 5, 6, 7, 8]) { dark.push(at(e, k), at(k, e)); }
+      for (const [i, j] of [[1, 6], [11, 6], [6, 1], [6, 11]]) dark.push(at(i, j));
+      const piece = geo("piece", () => new THREE.CylinderGeometry(0.009, 0.012, 0.022, 8).translate(0, 0.011, 0));
+      for (const [list, c] of [[light, "#efe4cf"], [dark, "#2e2620"]]) for (const [x, z] of list) mesh(piece, plain(c, 0.5), g, false).position.set(x, 0.482, 2.1 * CUB + z);
+      mesh(geo("king", () => new THREE.CylinderGeometry(0.008, 0.013, 0.04, 8).translate(0, 0.02, 0)), plain("#efe4cf", 0.5), g, false).position.set(0, 0.482, 2.1 * CUB);
       return { a, b }; },
     frame(s, ph) {
       const reach = ph < 0.4 ? Math.sin((ph / 0.4) * Math.PI) : 0, think = Math.sin(ph * TAU) * 0.03;
@@ -397,7 +414,9 @@ const ACTORS = {
       stick(s.rope, hand, muzzle);
     } },
   // a dog trotting around the camp (the main loop moves it)
-  dog: { period: 0.55, build(g) { return buildQuad(g, DOG); },
+  // a northern spitz-type dog, greyish-brown and about 46 cm at the shoulder. Nicolaysen (1882)
+  // describes greyish-brown hair on one dog's bone, and dogs from long-legged to very small.
+  dog: { period: 0.55, build(g) { const d = buildQuad(g, DOG); g.scale.setScalar(0.87); return d; },
     frame(d, ph) {
       // trot: diagonal legs move together
       const off = { lf: 0, rh: 0, rf: 0.5, lh: 0.5 };

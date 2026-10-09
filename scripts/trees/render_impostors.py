@@ -2,13 +2,15 @@
 # Run: blender --background <tree>.blend --python render_impostors.py -- <hdr> <outDir> <object> [<object> ...]
 # Each object gives <outDir>/<object>_<k>.png for k = 0..7, looking from azimuth k * 45 degrees,
 # with a transparent background and the scene's own sky as lighting.
+# FRAME=WxH sets the frame size in pixels (default 320x768, tall for a tree). A square frame
+# suits low, wide plants such as ferns.
 import bpy, sys, math, os
 from mathutils import Vector
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 hdr, out, names = argv[0], argv[1], argv[2:]
 os.makedirs(out, exist_ok=True)
-W, H = 320, 768  # one frame, tall for a tree
+W, H = (int(v) for v in os.environ.get("FRAME", "320x768").split("x"))
 
 scene = bpy.context.scene
 scene.render.engine = "CYCLES"
@@ -48,8 +50,10 @@ for name in names:
     hi = Vector([max(c[i] for c in corners) for i in range(3)])
     # the trunk base sits at the bottom middle of the frame
     base = Vector(((lo.x + hi.x) / 2, (lo.y + hi.y) / 2, lo.z))
-    height = (hi.z - lo.z) * 1.03
-    cam_data.ortho_scale = height  # the frame's long side is its height
+    # a tall frame fits the tree's height. A square frame also fits a low plant's widest spread.
+    spread = max((Vector((c.x, c.y, 0)) - Vector((base.x, base.y, 0))).length for c in corners) * 2
+    height = max(hi.z - lo.z, spread * H / W if W >= H else 0) * 1.03
+    cam_data.ortho_scale = height * max(1, W / H)  # ortho scale spans the frame's long side
     for k in range(8):
         a = k * math.pi / 4
         d = Vector((math.sin(a), -math.cos(a), 0))

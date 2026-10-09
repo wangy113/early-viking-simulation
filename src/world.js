@@ -136,29 +136,24 @@ const foam = (() => {
 })();
 
 // ---------------- woods inland ----------------
-// Real spruce-like firs and pines (Poly Haven, CC0), rendered in Blender from 8 directions under
-// this scene's sky. Each tree is a flat card that turns to face the camera and shows the render
+// Real pines (Poly Haven, CC0), rendered in Blender from 8 directions under
+// this scene's sky. Each plant is a flat card that turns to face the camera and shows the render
 // taken from the nearest direction, blended with the next one, so walking past a tree shows
-// its other sides. Hundreds of trees cost two triangles each.
-{
-  const R = rngFrom(655), N = 1800, kinds = treeInfo.trees;
+// its other sides. Hundreds of plants cost two triangles each. Ferns and young pines grow below.
+function impostors(set, spots) {
+  const kinds = treeInfo[set].trees, N = spots.length;
   const geo = new THREE.InstancedBufferGeometry().copy(new THREE.PlaneGeometry(1, 1).translate(0, 0.5, 0));
   const kind = new Float32Array(N), yaw = new Float32Array(N), size = new Float32Array(N * 2), base = new Float32Array(N * 3);
-  let n = 0;
-  for (let i = 0; i < 9000 && n < N; i++) {
-    const x = (R() - 0.5) * 900, z = 80 + R() * 340;
-    const dens = 0.5 + 0.5 * Math.sin(x * 0.013 + 1) * Math.sin(z * 0.02); if (R() > dens || (Math.abs(x + 14) < 18 && z < 60)) continue;
-    const k = Math.floor(R() * kinds.length), s = 0.75 + R() * 0.45;
-    kind[n] = k; yaw[n] = R() * Math.PI * 2; size[n * 2] = kinds[k].width * s; size[n * 2 + 1] = kinds[k].height * s;
-    base.set([x, groundY(x, z) - 0.15, z], n * 3); n++;
-  }
-  geo.instanceCount = n;
+  spots.forEach(([x, y, z, k, s, a], n) => {
+    kind[n] = k; yaw[n] = a; size[n * 2] = kinds[k].width * s; size[n * 2 + 1] = kinds[k].height * s; base.set([x, y, z], n * 3);
+  });
+  geo.instanceCount = N;
   geo.setAttribute("aBase", new THREE.InstancedBufferAttribute(base, 3));
   geo.setAttribute("aKind", new THREE.InstancedBufferAttribute(kind, 1));
   geo.setAttribute("aYaw", new THREE.InstancedBufferAttribute(yaw, 1));
   geo.setAttribute("aSize", new THREE.InstancedBufferAttribute(size, 2));
   const mat = new THREE.ShaderMaterial({
-    uniforms: { atlas: { value: treeAtlas() }, rows: { value: kinds.length }, light: { value: 1.0 }, ...THREE.UniformsLib.fog },
+    uniforms: { atlas: { value: treeAtlas(set) }, rows: { value: kinds.length }, light: { value: 1.0 }, ...THREE.UniformsLib.fog },
     fog: true,
     vertexShader: `
       attribute vec3 aBase; attribute float aKind, aYaw; attribute vec2 aSize;
@@ -168,7 +163,7 @@ const foam = (() => {
         vec3 toCam = cameraPosition - aBase; toCam.y = 0.0; toCam = normalize(toCam + vec3(1e-4, 0.0, 0.0));
         vec3 right = vec3(toCam.z, 0.0, -toCam.x);
         vec3 p = aBase + right * position.x * aSize.x + vec3(0.0, position.y * aSize.y, 0.0);
-        // which of the 8 renders: the view direction around the tree, in eighths of a turn
+        // which of the 8 renders: the view direction around the plant, in eighths of a turn
         float a = atan(toCam.x, toCam.z) - aYaw;
         vFrame = mod(a / 0.78539816 + 16.0, 8.0);
         vUv = uv; vKind = aKind;
@@ -192,9 +187,30 @@ const foam = (() => {
         #include <fog_fragment>
       }`,
   });
-  const woods = new THREE.Mesh(geo, mat);
-  woods.frustumCulled = false;
-  scene.add(woods);
+  const m = new THREE.Mesh(geo, mat);
+  m.frustumCulled = false;
+  scene.add(m);
+  return m;
+}
+{
+  const R = rngFrom(655), trees = [], ferns = [], saplings = [], nT = treeInfo.trees.trees.length;
+  const dens = (x, z) => 0.5 + 0.5 * Math.sin(x * 0.013 + 1) * Math.sin(z * 0.02);
+  for (let i = 0; i < 9000 && trees.length < 1800; i++) {
+    const x = (R() - 0.5) * 900, z = 80 + R() * 340;
+    if (R() > dens(x, z) || (Math.abs(x + 14) < 18 && z < 60)) continue;
+    trees.push([x, groundY(x, z) - 0.15, z, Math.floor(R() * nT), 0.75 + R() * 0.45, R() * TAU]);
+  }
+  // undergrowth grows in patches around the trees, thickest near the edge of the woods where light
+  // reaches the ground. Farther in it would be too small to see.
+  const near = trees.filter(([, , z]) => z < 220);
+  for (let i = 0; i < 6000; i++) {
+    const [tx, , tz] = near[Math.floor(R() * near.length)], a = R() * TAU, r = 1 + Math.pow(R(), 0.7) * 7;
+    const x = tx + Math.cos(a) * r, z = Math.max(73, tz + Math.sin(a) * r), fern = R() < 0.7, k = Math.floor(R() * 2);
+    (fern ? ferns : saplings).push([x, groundY(x, z) - 0.05, z, k, fern ? 1.1 + R() * 0.9 : 0.8 + R() * 1.6, R() * TAU]);
+  }
+  impostors("trees", trees);
+  impostors("ferns", ferns);
+  impostors("saplings", saplings);
 }
 
 // ---------------- wooded hills across the water ----------------
@@ -250,7 +266,13 @@ const foam = (() => {
   const gable = new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)]);
   const gm = new THREE.Mesh(new THREE.ShapeGeometry(gable), cloth); gm.position.z = -len / 2; tent.add(gm);
   const door = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(-half, 0), new THREE.Vector2(-0.5, 0), new THREE.Vector2(0, 1.5), new THREE.Vector2(0.5, 0), new THREE.Vector2(half, 0), new THREE.Vector2(0, ht)])), cloth); door.position.z = len / 2; tent.add(door);
-  for (const z of [len / 2 + 0.05, -len / 2 - 0.05]) for (const sd of [1, -1]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.1, 0.08), woodMat); b.position.set(sd * 0.55, 1.35, z); b.rotation.z = sd * 0.42; tent.add(b); }
+  // crossed boards at each end. At Gokstad their tops were carved heads, painted yellow and black
+  // like the shields (Nicolaysen 1882, p. 63). The plain rounded heads here stand in for the carving.
+  const paint = (color) => std({ color, roughness: 0.78 }), yellow = paint(0xd7a531), black = paint(0x1e1b19);
+  for (const z of [len / 2 + 0.05, -len / 2 - 0.05]) for (const sd of [1, -1]) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.1, 3.1, 0.08), woodMat); b.position.set(sd * 0.55, 1.35, z); b.rotation.z = sd * 0.42; tent.add(b);
+    const head = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.16, 4, 10), sd > 0 ? yellow : black); head.position.set(0, 1.62, 0); b.add(head);
+  }
   const ridgePole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, len + 0.4, 8), woodMat); ridgePole.rotation.x = Math.PI / 2; ridgePole.position.y = ht + 0.02; tent.add(ridgePole);
   tent.position.set(-11.5, groundY(-11.5, 7), 7); tent.rotation.y = 0.5; add(tent, { solid: true });
 }

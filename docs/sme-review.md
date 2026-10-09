@@ -19,7 +19,7 @@ This packet lists every factual claim the Gokstad Ship Explorer makes to student
 | 2 | Seams were packed with wool or animal hair soaked in tar. | Other | Verified | Twisted wool or cow hair with pine tar. Encyclopaedia Romana. Tagged Other because the tar pot and the work are illustrated. |
 | 3 | 16 round oar ports on each side, enough for 32 rowers. | Found | Verified | Nicolaysen 1882. Wikipedia. |
 | 3 | The ports are cut through the third plank down from the top. | Found | Verified | Encyclopaedia Romana. Counting methods differ between sources, so please confirm. |
-| 3 | The ports could be closed when the ship was under sail. | Found | Check | Wooden covers that swivel shut are described in one source we found. Please confirm or point us to a better one. |
+| 3 | The ports could be closed when the ship was under sail. | Found | Verified | Nicolaysen 1882 (p. 59): 28 shutters survive, each held by a pin in a slit. Encyclopaedia Romana. |
 | 3 | Some oars are stowed on posts in the middle of the ship. | Found | Check | Oars were found with the ship. How they were stowed in the scene is our choice. |
 | 4 | Yellow and black shields were found fixed overlapping along the rail, 32 on each side. | Found | Verified | Nicolaysen 1882. Wikipedia. |
 | 4 | Here they hang on the back half only. | Recon | Teaching choice | Deliberate, so students can compare open and covered oar ports. The text says so. |
@@ -33,7 +33,7 @@ This packet lists every factual claim the Gokstad Ship Explorer makes to student
 | 9 | Kitchen equipment was among the grave goods. | Found | Verified | Wikipedia, Gokstad Mound. We avoid the word cauldron. |
 | 9 | Her apron dress and pair of oval brooches follow women's graves across the Viking Age. | Other | Verified | See `docs/people-research.md` for clothing sources. |
 | 10 | Parts of a tent were found. A wooden frame held a woolen cover that could be taken down. The cloth shown is a reconstruction. | Found, Recon | Check | Tent frame parts are well known. Please confirm the cover was wool. |
-| 11 | Bones of twelve horses and several dogs were buried with the ship, with birds including peacocks. | Found | Verified | Wikipedia lists 12 horses, 8 dogs, 2 goshawks and 2 peacocks. Some sources give 6 dogs, so the text says several. |
+| 11 | Bones of twelve horses and several dogs were buried with the ship, with birds including peafowl and hawks. | Found | Verified | Wikipedia lists 12 horses, 8 dogs, 2 goshawks and 2 peacocks. Nicolaysen 1882 (p. 52) counts at least 6 dogs and one peacock. The text says several dogs. |
 | 11 | These animals showed the wealth and rank of the man buried here. | Recon | Verified | A common reading. Archaeology magazine, 2014. |
 | 12 | The mound held three small boats. A boat like this could ferry people and goods or be used for fishing. | Found | Verified | Nicolaysen 1882. The uses are our suggestion. |
 
@@ -59,13 +59,18 @@ Students may read the scene as evidence even where the text says nothing. Please
 - **The sail's red and white stripes** and its size.
 - **The tiller and rudder fittings**, the rope rigging and the yard.
 - **The small boat** is built in the same clinker style as the ship, scaled down.
-- **The fjord, hills and spruce woods** are a general Norwegian coast, not the real landscape of Gokstad.
+- **The fjord, hills and pine woods** are a general Norwegian coast, not the real landscape of Gokstad. The woods show Scots-type pine with ferns and young pines below. Around 900 the coast near Gokstad also had oak, birch, alder, hazel and juniper (charcoal and seeds from Kaupang). Spruce was rare or absent there, and fir never grew wild in Norway, so neither is shown. Broadleaf trees are missing only because we have no free model of them yet.
+- **The tent's carved heads** are plain rounded stand-ins, painted yellow and black as Nicolaysen describes. The tiller is painted the same way. Which parts were yellow and which black is our choice.
+- **The gaming board** shows a 13 by 13 grid, as on one side of the Gokstad board, with pieces set out for a tafl game. The layout is a reconstruction.
+- **The animals** are built in code as stand-ins. The horse is about 1.3 m at the shoulder, smaller than a modern horse, as the bones suggest. The dog is a greyish-brown northern spitz type. No breed is claimed.
 
 ## Deliberately left out
 
 We do not show or claim these without a source: how strakes were fastened to frames, a dragon head on the stems, a gangplank, a cauldron, an exact keel length, or the ship's draft. If you can point us to good sources for any of them, we can add them.
 
 ## Questions for the reviewer
+
+Note: Nicolaysen 1882 (pp. 51 to 52) records a pine landing stage with an opening at one end for fastening it to the ship. This is a primary source for a gangplank, which is on our do-not-add list. We have not added one. Please advise.
 
 1. Is "about 900" the right date in the title, given building about 890 and burial about 901 to 905?
 2. Should stop 3 keep "could be closed under sail"?
@@ -75,6 +80,8 @@ We do not show or claim these without a source: how strakes were fastened to fra
 
 ## Sources we used
 
+- Kaupang environment chapter (charcoal and plant remains), White Rose eprints. https://eprints.whiterose.ac.uk/75377/1/Kaupang_Chapter_14_Environment.pdf
+- Hafsten, U. (1985), on the spread of spruce in Norway, *Iskos*. https://journal.fi/iskos/article/view/128022
 - Nicolaysen, N. *Langskibet fra Gokstad ved Sandefjord* (The Viking ship discovered at Gokstad in Norway). Kristiania, 1882. https://runeberg.org/gokstad/
 - Gokstad ship, and Gokstad Mound. Wikipedia. https://en.wikipedia.org/wiki/Gokstad_ship and https://en.wikipedia.org/wiki/Gokstad_Mound
 - The Gokstad ship. Encyclopaedia Romana, University of Chicago. https://penelope.uchicago.edu/~grout/encyclopaedia_romana/britannia/anglo-saxon/maldon/gokstad.html

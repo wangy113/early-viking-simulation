@@ -29,7 +29,7 @@ A working single-file proof of concept exists. The production job is to harden i
   - a side rudder on the starboard quarter
   - tree rings show it was built about 890
   - excavated 1880 by Nicolay Nicolaysen
-  - grave goods: a gaming board with horn pieces, kitchen equipment, a tent, a sledge, beds, three small boats, 12 horses, dogs and birds including peacocks
+  - grave goods: a gaming board with horn pieces, kitchen equipment, a tent, a sledge, beds, three small boats, 12 horses, dogs and birds including peafowl and hawks
   - the mound was robbed in antiquity
   - the 1893 replica *Viking* sailed from Bergen and crossed the Atlantic in 27 days on its way to Chicago
   - the sail: the 1880s report describes white wool cloth with red stripes sewn on, possibly from the sail
@@ -227,5 +227,12 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - `docs/canvas-link.md`: the link, suggested link text and the deep links.
 
 ## 2026-10-09: Real trees and people touch-ups
-- The woods use Poly Haven's Fir Tree 01 and Pine Tree 01 (CC0). `scripts/trees/render_impostors.py` renders two firs and three pines from 8 directions under the scene's sky in Blender, and `scripts/build-trees.mjs` packs them into `public/assets/trees/` (0.8 MB on Low, 2.6 MB otherwise). In `src/world.js` each tree is one card that turns to the camera and blends the two nearest renders, so 1,800 trees cost two triangles each.
+- The woods use Poly Haven's Pine Tree 01, Fern 02 and Pine Sapling Small (CC0). `scripts/trees/render_impostors.py` renders three pines, two ferns and two young pines from 8 directions under the scene's sky in Blender, and `scripts/build-trees.mjs` packs them into atlases in `public/assets/trees/` (0.6 MB on Low, 1.9 MB otherwise). Firs were removed on 2026-10-09 because fir never grew wild in Norway. In `src/world.js` each tree is one card that turns to the camera and blends the two nearest renders, so 1,800 trees cost two triangles each.
 - People: tunic skirts blend widely across the middle, so they hang over the lap when seated. The cook's linen skirt is now built only below the apron dress and shares its weighting, so it never pokes through. Her shawl is thinner, the steersman's cloak covers his tunic, and wool and linen are matt.
+
+### 2026-10-09: accuracy pass, undergrowth, cook's dress
+- A history check against Nicolaysen 1882 and pollen and charcoal studies led to these changes. The firs are gone, because fir never grew wild in Norway and spruce was rare or absent near Gokstad around 900. The carried oar is now 5.3 m, like the one complete Gokstad oar. The crewman's shield is 94 cm across. The gaming board has a 13 by 13 grid with pieces set out for tafl. The tent's crossed boards end in heads painted yellow and black, and the tiller is painted the same way (p. 63). The small boat has a side rudder (p. 65). The dog is a smaller, greyish-brown spitz type. Stop 11 now says peafowl and hawks.
+- Undergrowth: ferns and young pines grow in patches around the trees, as two more impostor atlases.
+- The cook's apron dress is fitted at the top, eases in below the bust and flares to the hem. Woad blues are deeper.
+- For the horse and dog models: do not use a named breed. The dog should be a northern spitz type about 45 cm at the shoulder, greyish-brown. The horse should be about 1.3 to 1.45 m, stocky. Not a dun Fjord horse.
+- Still open: broadleaf trees (oak, birch, alder, hazel) and juniper have no free model yet. Nicolaysen records a pine landing stage, which is a source for a gangplank. It stays out until the user decides.

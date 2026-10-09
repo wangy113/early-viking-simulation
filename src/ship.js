@@ -183,7 +183,11 @@ const rudder = new THREE.Group(); rudder.position.copy(rudderPivot);
   bg.translate(0, 0, -0.035); bg.rotateY(Math.PI / 2);
   const blade = new THREE.Mesh(bg, woodMat); blade.position.set(0, -0.9, 0.9); blade.rotation.x = -0.5; rudder.add(blade);
   const boss = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.4, 0.5), woodMat); boss.position.set(-0.2, -1.4, 0); rudder.add(boss);
-  const tiller = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.4, 8), woodMat); tiller.rotation.z = Math.PI / 2; tiller.position.set(-0.6, 0.15, 0); rudder.add(tiller);
+  // the tiller was painted yellow and black, in the same paint as the shields (Nicolaysen 1882, p. 63).
+  // How the two colours were laid out is not known. Here the grip end is black.
+  const tpaint = (color) => std({ color, roughness: 0.78, normalMap: pbr("hull", { repeat: [0.5, 0.5] }).normalMap, normalScale: new THREE.Vector2(0.3, 0.3) });
+  const tiller = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.4, 8), tpaint(0xd7a531)); tiller.rotation.z = Math.PI / 2; tiller.position.set(-0.6, 0.15, 0); rudder.add(tiller);
+  const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.043, 0.046, 0.36, 8), tpaint(0x1e1b19)); grip.rotation.z = Math.PI / 2; grip.position.set(-1.12, 0.15, 0); rudder.add(grip);
 }
 add(rudder);
 // mast, mast fish, crutches, yard and sail
@@ -253,6 +257,14 @@ const boat = buildHull(BOAT, HB, { nu: 40, lap: 0.018, thick: 0.018, keelR: 0.05
     parts.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 16, 0.025, 5));
   }
   add(new THREE.Mesh(mergeGeometries(parts.map((g) => g.index ? g.toNonIndexed() : g)), woodMat), { parent: boat });
+}
+{
+  // the small boats had side rudders like the ship's (Nicolaysen 1882, p. 65)
+  const at = HB.pt(0.78, 0.95, 1);
+  const shape = new THREE.Shape(); shape.moveTo(-0.03, 0.12); shape.lineTo(0.03, 0.12); shape.lineTo(0.05, -0.2); shape.quadraticCurveTo(0.12, -0.35, 0.1, -0.62); shape.lineTo(-0.05, -0.64); shape.quadraticCurveTo(-0.07, -0.3, -0.03, 0.12);
+  const g = new THREE.ExtrudeGeometry(shape, { depth: 0.03, bevelEnabled: false }); g.translate(0, 0, -0.015); g.rotateY(Math.PI / 2);
+  const r = new THREE.Mesh(g, woodMat); r.position.set(at.x + 0.06, at.y + 0.18, at.z); r.rotation.x = -0.6; add(r, { parent: boat });
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.018, 0.5, 6), woodMat); t.rotation.z = Math.PI / 2; t.position.set(at.x - 0.2, at.y + 0.08, at.z); add(t, { parent: boat });
 }
 boat.position.set(8.5, -0.02, -12.5); boat.rotation.y = 0.5; boat.rotation.z = 0.08; scene.add(boat);
 

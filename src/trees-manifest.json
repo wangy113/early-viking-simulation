@@ -1,34 +1,62 @@
 {
   "frames": 8,
-  "trees": [
-    {
-      "name": "fir_tree_01_a",
-      "height": 19.523,
-      "width": 8.135
-    },
-    {
-      "name": "fir_tree_01_b",
-      "height": 14.5,
-      "width": 6.042
-    },
-    {
-      "name": "pine_tree_01_a",
-      "height": 21.009,
-      "width": 8.754
-    },
-    {
-      "name": "pine_tree_01_b",
-      "height": 15.327,
-      "width": 6.386
-    },
-    {
-      "name": "pine_tree_01_c",
-      "height": 18.077,
-      "width": 7.532
+  "trees": {
+    "trees": [
+      {
+        "name": "pine_tree_01_a",
+        "height": 21.009,
+        "width": 8.754
+      },
+      {
+        "name": "pine_tree_01_b",
+        "height": 15.327,
+        "width": 6.386
+      },
+      {
+        "name": "pine_tree_01_c",
+        "height": 18.077,
+        "width": 7.532
+      }
+    ],
+    "atlas": {
+      "1k": "trees/trees_1k.webp",
+      "2k": "trees/trees_2k.webp"
     }
-  ],
-  "atlas": {
-    "1k": "trees/trees_1k.webp",
-    "2k": "trees/trees_2k.webp"
+  },
+  "ferns": {
+    "trees": [
+      {
+        "name": "fern_02_b",
+        "height": 0.687,
+        "width": 1.374
+      },
+      {
+        "name": "fern_02_c",
+        "height": 0.598,
+        "width": 1.197
+      }
+    ],
+    "atlas": {
+      "1k": "trees/ferns_1k.webp",
+      "2k": "trees/ferns_2k.webp"
+    }
+  },
+  "saplings": {
+    "trees": [
+      {
+        "name": "pine_sapling_small_a",
+        "height": 1.338,
+        "width": 1.338
+      },
+      {
+        "name": "pine_sapling_small_b",
+        "height": 1.077,
+        "width": 1.077
+      }
+    ],
+    "atlas": {
+      "1k": "trees/saplings_1k.webp",
+      "2k": "trees/saplings_2k.webp"
+    }
   }
 }
