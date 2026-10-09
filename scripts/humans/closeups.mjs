@@ -22,7 +22,7 @@ const cams = await page.evaluate(() => {
       const pos = p.getWorldPosition(new p.position.constructor()), q = p.getWorldQuaternion(new p.quaternion.constructor());
       const fwd = new p.position.constructor(0, 0, 1).applyQuaternion(q), side = new p.position.constructor(1, 0, 0).applyQuaternion(q);
       // most people face their work, so look from the side for the ones facing the hull
-      const ang = { wright: 1.9, caulk: 1.7, shield: -1.2, rope: 2.6, steer: -0.6, chest: 0.9 }[name] ?? 0.35, d = 2.3;
+      const ang = { wright: 1.9, caulk: 1.7, shield: -1.2, rope: 2.6, steer: -0.6, chest: 1.6 }[name] ?? 0.35, d = 2.3;
       let dir = fwd.clone().multiplyScalar(Math.cos(ang)).addScaledVector(side, Math.sin(ang));
       // people on deck are seen from inside the ship, looking outboard past them
       if (pos.y > 0.6) dir = new p.position.constructor(-pos.x, 0, 0).normalize().addScaledVector(fwd, 0.5).normalize();

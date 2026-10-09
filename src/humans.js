@@ -227,7 +227,8 @@ class Human {
     // An arm may instead give an exact grip point: `local` in this figure's own frame (meters,
     // +z forward), or `head`, an offset from the head (a hand at the brow or under the chin).
     // `pole` is where the elbow points, also in the figure's frame.
-    const headPos = b.head.getWorldPosition(new THREE.Vector3());
+    const solveArms = () => {
+    const headPos = b.head.getWorldPosition(new THREE.Vector3()), res = [];
     for (const [side, s, lat] of [["back", "r", -0.205], ["front", "l", 0.205]]) {
       const arm = pd[`${side}Arm`];
       const ua = b[`upperarm_${s}`], fa = b[`lowerarm_${s}`], hand = b[`hand_${s}`];
@@ -254,6 +255,21 @@ class Human {
       }
       this.miss[side] = goal.distanceTo(this.gripPoint(s, fist)); // how far the fist ended from its target
       g.worldToLocal(this.gripPoint(s, this.hands[side]));
+      res.push({ goal, miss: this.miss[side], A });
+    }
+    return res;
+    };
+    // If a hand falls short, bend at the waist toward it and reach again, as a person would.
+    for (let round = 0; round < 4; round++) {
+      const res = solveArms(), short = res.filter((r) => r.miss > 0.02);
+      if (!short.length || round === 3 || pd.upright) break;
+      const pivot = b.spine_01.getWorldPosition(new THREE.Vector3());
+      const from = short.reduce((t, r) => t.add(r.A), new THREE.Vector3()).divideScalar(short.length).sub(pivot);
+      const to = short.reduce((t, r) => t.add(r.goal), new THREE.Vector3()).divideScalar(short.length).sub(pivot);
+      const axis = from.clone().cross(to); if (axis.lengthSq() < 1e-8) break;
+      const ang = Math.min(0.3, Math.max(...short.map((r) => r.miss)) / from.length());
+      const lean = new THREE.Quaternion().setFromAxisAngle(axis.normalize(), ang / 3);
+      for (const n of ["spine_01", "spine_02", "spine_03"]) turnWorld(b[n], lean);
     }
 
     // legs: feet go where the pose puts them, knees bend toward the pose's knees

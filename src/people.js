@@ -38,7 +38,7 @@ const outfits = {
 function pose(o, p = {}) {
   const hip = p.hip || [0, -1.85], sh = p.sh || [hip[0] + (p.lean || 0), hip[1] - 1.15];
   return {
-    o, hip, sh, kick: p.kick || 0, headX: p.headX || 0, headY: p.headY || 0,
+    o, hip, sh, kick: p.kick || 0, headX: p.headX || 0, headY: p.headY || 0, upright: !!p.upright,
     backLeg: p.backLeg || { knee: [hip[0] - 0.06, -0.95], foot: [hip[0] - 0.1, 0] },
     frontLeg: p.frontLeg || { knee: [hip[0] + 0.08, -0.95], foot: [hip[0] + 0.1, 0] },
     backArm: p.backArm || { el: [sh[0] - 0.1, sh[1] + 0.6], hand: [sh[0] - 0.05, sh[1] + 1.15] },
@@ -268,7 +268,7 @@ const ACTORS = {
       const up = ph < 0.6 ? Math.sin((ph / 0.6) * Math.PI / 2) : 1 - (ph - 0.6) / 0.4;
       const rivet = V(0.08, 1.2, s.reach(1.2) - 0.03), ang = up * 1.3, dir = V(0, Math.sin(ang), Math.cos(ang)), L = 0.27;
       const grip = rivet.clone().addScaledVector(dir, -L).add(V(0, up * 0.08, -up * 0.1));
-      s.p.setPose(pose(outfits.wright, { lean: 0.03, backArm: { local: V(-0.1, 1.15, s.reach(1.15) - 0.05) }, frontArm: { local: grip, pole: V(0.35, 0.95, -0.1) } }));
+      s.p.setPose(pose(outfits.wright, { upright: true, lean: 0.03, backArm: { local: V(-0.12, 1.12, s.reach(1.12) - 0.06) }, frontArm: { local: grip, pole: V(0.35, 0.95, -0.1) } }));
       const tip = s.p.hands.front.clone().addScaledVector(dir, L);
       stick(s.handle, s.p.hands.front, tip); s.head.position.copy(tip); s.head.quaternion.copy(s.handle.quaternion);
     } },
@@ -301,7 +301,7 @@ const ACTORS = {
   shield: { period: 2.4, build(g) { const p = new Human(outfits.shield); g.add(p.g); const sh = disc(C.shieldY); g.add(sh); return { p, sh }; },
     frame(s, ph) {
       // both hands hold the lower rim of the shield as he lifts it toward the rail
-      const up = (1 - Math.cos(ph * TAU)) / 2, c = V(0, lerp(1.15, 1.45, up), lerp(0.36, 0.45, up));
+      const up = (1 - Math.cos(ph * TAU)) / 2, c = V(0, lerp(1.15, 1.45, up), lerp(0.34, 0.42, up));
       s.p.setPose(pose(outfits.shield, { lean: 0.05 + up * 0.08, backArm: { local: V(-0.3, c.y - 0.3, c.z - 0.03) }, frontArm: { local: V(0.3, c.y - 0.3, c.z - 0.03) } }));
       s.sh.position.copy(c);
     } },
@@ -328,15 +328,20 @@ const ACTORS = {
   // a crewman on the beach heaves a sea chest up to another leaning over the rail
   chest: { period: 2.6, build(g, opts) {
       const a = new Human(outfits.chest1), b = new Human(outfits.chest2); // b turns to face a
-      a.g.position.copy(P2(1.05, 0)); b.g.position.copy(P2(3.2, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
+      a.g.position.copy(P2(0.8, 0)); b.g.position.copy(P2(2.95, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const chest = new THREE.Group(); box(0.5, 0.34, 0.36, mat("chestwood", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xd6a979 })), chest); box(0.08, 0.1, 0.02, plain(C.iron, 0.5, 0.7), chest).position.set(0, 0.08, 0.185);
-      chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest, rail: opts.face ? opts.face.y : 2.0 }; },
+      chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest, rail: opts.face ? opts.face.y : 2.0, reach: opts.reach || (() => 1.15) }; },
     frame(s, ph) {
       // the man below holds the chest by its near end, the man on deck takes the far end at the rail
-      const up = (1 - Math.cos(ph * TAU)) / 2, c = V(0, lerp(1.2, Math.min(s.rail + 0.1, 1.9), up), 2.2 * CUB);
-      const near = (sd) => inP(s.a, V(sd * 0.19, c.y - 0.04, c.z - 0.14)), far = (sd) => inP(s.b, V(sd * 0.19, Math.max(c.y + 0.02, s.rail + 0.06), c.z + 0.14));
-      s.a.setPose(pose(outfits.chest1, { lean: 0.1, backArm: { local: near(-1) }, frontArm: { local: near(1) } }));
-      s.b.setPose(pose(outfits.chest2, { hip: [0, -1.85], sh: [0.35, -2.85], backArm: { local: far(1) }, frontArm: { local: far(-1) } }));
+      // The man below pushes the chest up from underneath until its top reaches the gunwale.
+      // The man on deck waits with his hands on the gunwale, then takes the top of the chest.
+      const up = (1 - Math.cos(ph * TAU)) / 2, cy = lerp(1.25, s.rail - 0.36, up);
+      const c = V(0, cy, Math.min(2.2 * CUB, Math.min(s.reach(cy - 0.17), s.reach(cy + 0.17)) - 0.22)); // clear of the planks
+      const below = (sd) => inP(s.a, V(sd * 0.16, c.y - 0.13, c.z - 0.08));
+      const onRail = (sd) => V(sd * 0.22, s.rail + 0.03, s.reach(s.rail - 0.05) + 0.06), onChest = (sd) => V(sd * 0.17, c.y + 0.19, c.z + 0.21);
+      const above = (sd) => inP(s.b, onRail(sd).lerp(onChest(sd), THREE.MathUtils.smoothstep(up, 0.7, 0.95)));
+      s.a.setPose(pose(outfits.chest1, { lean: 0.02, backArm: { local: below(-1) }, frontArm: { local: below(1) } }));
+      s.b.setPose(pose(outfits.chest2, { hip: [-0.25, -1.72], sh: [0.85, -2.6], backLeg: { knee: [0.12, -0.95], foot: [-0.15, 0] }, frontLeg: { knee: [0.2, -0.93], foot: [0.05, 0] }, backArm: { local: above(1) }, frontArm: { local: above(-1) } }));
       s.chest.position.copy(c);
     } },
   // two players at a gaming board set on a chest
@@ -354,7 +359,7 @@ const ACTORS = {
       const reach = ph < 0.4 ? Math.sin((ph / 0.4) * Math.PI) : 0, think = Math.sin(ph * TAU) * 0.03;
       // one player moves a piece on the board, the other rests his chin on his hand and thinks
       const seat = (o, front) => pose(o, { hip: [0, -1.05], sh: [0.15, -2.15], headY: think, backLeg: { knee: [0.55, -1.1], foot: [0.6, 0] }, frontLeg: { knee: [0.6, -1.05], foot: [0.7, 0] }, backArm: { local: V(-0.11, 0.63, 0.24) }, frontArm: front });
-      const lap = V(0.11, 0.63, 0.24), piece = V(0.04, 0.52, 2.1 * CUB - 0.9 * CUB - 0.12);
+      const lap = V(0.11, 0.63, 0.24), piece = V(0.04, 0.52, 2.1 * CUB - 0.9 * CUB - 0.15);
       s.a.setPose(seat(outfits.game1, { local: lap.clone().lerp(piece, reach).add(V(0, reach * (1 - reach) * 0.25, 0)) }));
       s.b.setPose(seat(outfits.game2, { head: V(0, -0.11, 0.1 + think), pole: V(0.15, 0.62, 0.3) }));
     } },
