@@ -219,3 +219,9 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - Phones: the tools fold into a Menu, the stop panel is a bottom sheet, touch targets are 44 pixels, and two fingers pinch to walk.
 - `tests/a11y.spec.js`: axe-core WCAG 2.1 AA scans, a keyboard-only path, Pause motion, and a 320 pixel reflow and touch-target check. `docs/accessibility.md` has the manual checklist for NVDA, VoiceOver, zoom and high contrast.
 - The About page has an accessibility statement.
+
+## 2026-10-09: M7 review packet and exploration activity
+- The user will share the app with students as a plain link, so no iframe embed is needed.
+- `docs/sme-review.md`: every claim in the stops and the About page with its tag, status (verified or check), sources, things the scene shows without saying, and questions for a subject expert.
+- `docs/exploration-activity.md`: "Evidence or imagination?", with an objective, before, during and after tasks, a discussion prompt and five quiz questions with answers.
+- `docs/canvas-link.md`: the link, suggested link text and the deep links.
