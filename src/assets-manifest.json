@@ -1,0 +1,180 @@
+{
+  "textures": {
+    "hull": {
+      "diff": {
+        "1024": "tex/hull_diff_1k.webp",
+        "2048": "tex/hull_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/hull_nor_1k.webp",
+        "2048": "tex/hull_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/hull_arm_1k.webp",
+        "2048": "tex/hull_arm_2k.webp"
+      }
+    },
+    "deck": {
+      "diff": {
+        "1024": "tex/deck_diff_1k.webp",
+        "2048": "tex/deck_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/deck_nor_1k.webp",
+        "2048": "tex/deck_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/deck_arm_1k.webp",
+        "2048": "tex/deck_arm_2k.webp"
+      }
+    },
+    "iron": {
+      "diff": {
+        "1024": "tex/iron_diff_1k.webp",
+        "2048": "tex/iron_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/iron_nor_1k.webp",
+        "2048": "tex/iron_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/iron_arm_1k.webp",
+        "2048": "tex/iron_arm_2k.webp"
+      }
+    },
+    "cloth": {
+      "diff": {
+        "1024": "tex/cloth_diff_1k.webp",
+        "2048": "tex/cloth_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/cloth_nor_1k.webp",
+        "2048": "tex/cloth_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/cloth_arm_1k.webp",
+        "2048": "tex/cloth_arm_2k.webp"
+      }
+    },
+    "sand": {
+      "diff": {
+        "1024": "tex/sand_diff_1k.webp",
+        "2048": "tex/sand_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/sand_nor_1k.webp",
+        "2048": "tex/sand_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/sand_arm_1k.webp",
+        "2048": "tex/sand_arm_2k.webp"
+      }
+    },
+    "wetsand": {
+      "diff": {
+        "1024": "tex/wetsand_diff_1k.webp",
+        "2048": "tex/wetsand_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/wetsand_nor_1k.webp",
+        "2048": "tex/wetsand_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/wetsand_arm_1k.webp",
+        "2048": "tex/wetsand_arm_2k.webp"
+      }
+    },
+    "grass": {
+      "diff": {
+        "1024": "tex/grass_diff_1k.webp",
+        "2048": "tex/grass_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/grass_nor_1k.webp",
+        "2048": "tex/grass_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/grass_arm_1k.webp",
+        "2048": "tex/grass_arm_2k.webp"
+      }
+    },
+    "rock": {
+      "diff": {
+        "1024": "tex/rock_diff_1k.webp",
+        "2048": "tex/rock_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/rock_nor_1k.webp",
+        "2048": "tex/rock_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/rock_arm_1k.webp",
+        "2048": "tex/rock_arm_2k.webp"
+      }
+    },
+    "wool": {
+      "diff": {
+        "1024": "tex/wool_diff_1k.webp",
+        "2048": "tex/wool_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/wool_nor_1k.webp",
+        "2048": "tex/wool_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/wool_arm_1k.webp",
+        "2048": "tex/wool_arm_2k.webp"
+      }
+    },
+    "twill": {
+      "diff": {
+        "1024": "tex/twill_diff_1k.webp",
+        "2048": "tex/twill_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/twill_nor_1k.webp",
+        "2048": "tex/twill_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/twill_arm_1k.webp",
+        "2048": "tex/twill_arm_2k.webp"
+      }
+    },
+    "linen": {
+      "diff": {
+        "1024": "tex/linen_diff_1k.webp",
+        "2048": "tex/linen_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/linen_nor_1k.webp",
+        "2048": "tex/linen_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/linen_arm_1k.webp",
+        "2048": "tex/linen_arm_2k.webp"
+      }
+    },
+    "leather": {
+      "diff": {
+        "1024": "tex/leather_diff_1k.webp",
+        "2048": "tex/leather_diff_2k.webp"
+      },
+      "nor": {
+        "1024": "tex/leather_nor_1k.webp",
+        "2048": "tex/leather_nor_2k.webp"
+      },
+      "arm": {
+        "1024": "tex/leather_arm_1k.webp",
+        "2048": "tex/leather_arm_2k.webp"
+      }
+    }
+  },
+  "sizes": [
+    1024,
+    2048
+  ],
+  "sky": {
+    "light": "sky/light_1k.hdr",
+    "backdrop": "sky/backdrop.jpg"
+  }
+}

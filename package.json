@@ -1,0 +1,31 @@
+{
+  "name": "gokstad-ship-explorer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "lint:style": "node scripts/check-style.mjs",
+    "test": "playwright test",
+    "textures:fetch": "node scripts/fetch-textures.mjs",
+    "textures:build": "node scripts/build-textures.mjs",
+    "shots": "node scripts/shots.mjs"
+  },
+  "dependencies": {
+    "@fontsource/source-sans-3": "5.3.0",
+    "@fontsource/spectral": "5.3.0",
+    "three": "0.181.2"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@gltf-transform/core": "^4.2.1",
+    "@gltf-transform/extensions": "^4.2.1",
+    "@gltf-transform/functions": "^4.2.1",
+    "@playwright/test": "1.56.1",
+    "meshoptimizer": "^0.25.0",
+    "sharp": "0.35.5",
+    "vite": "8.3.4"
+  }
+}

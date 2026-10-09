@@ -1,0 +1,144 @@
+[
+  {
+    "id": "hull",
+    "title": "Overlapping planks",
+    "tags": [
+      "found"
+    ],
+    "body": [
+      "Each side of the hull is built from 16 oak planks, called strakes. Every plank overlaps the one below it and is fixed with iron rivets. This way of building is called clinker. Builders shaped the planks first and fitted the inner frames afterward, so the hull is light and flexible.",
+      "The shipwright here is hammering a rivet over a small iron plate on the inside."
+    ],
+    "notice": "Look along the hull. Count the steps where one plank overlaps the next."
+  },
+  {
+    "id": "caulk",
+    "title": "Sealing the seams",
+    "tags": [
+      "other"
+    ],
+    "body": [
+      "To keep water out, builders packed the seams between planks with wool or animal hair soaked in tar. This worker is pressing tarred wool into a seam. The pot beside him holds warm tar."
+    ],
+    "notice": "Why would a flexible hull need a seal that can bend with it?"
+  },
+  {
+    "id": "oars",
+    "title": "Oars and oar ports",
+    "tags": [
+      "found"
+    ],
+    "body": [
+      "The ship has 16 round oar ports on each side, enough for 32 rowers. They are cut through the third plank down from the top and could be closed when the ship was under sail.",
+      "Two crew members are carrying an oar down the beach. Some oars are already stowed on the posts in the middle of the ship."
+    ],
+    "notice": "Look at the front half of the ship, where the shields are not hung yet. Count the round holes. Then look at the back half. What happened to the oar ports there?"
+  },
+  {
+    "id": "shields",
+    "title": "Shields along the rail",
+    "tags": [
+      "found",
+      "recon"
+    ],
+    "body": [
+      "Shields painted yellow and black were found with the ship, fixed so that they overlapped along the rail, 32 on each side. Here the crew has hung them along the back half of the ship, and a crewman on deck is lifting another one into place.",
+      "Historians think a row like this was for show, in harbor or at the burial. As you can see, it covers the oar ports, so the crew could not row with the shields in place."
+    ],
+    "notice": "What message might a row of 64 painted shields send to people on shore?"
+  },
+  {
+    "id": "rudder",
+    "title": "The steering board",
+    "tags": [
+      "found"
+    ],
+    "body": [
+      "The ship was steered with a large rudder fixed to its right side near the stern. Seafarers called this side the steering board, which is where the English word <em>starboard</em> comes from. The steersman works it with a tiller."
+    ],
+    "notice": "Which side of the ship is the rudder on if you face the bow?"
+  },
+  {
+    "id": "mast",
+    "title": "Mast and sail",
+    "tags": [
+      "found",
+      "recon"
+    ],
+    "body": [
+      "A huge oak block at deck level, called the mast fish, held the mast upright and let the crew lower it. Pieces of white wool cloth with red stripes sewn on were found in the mound and may come from the sail. The size and pattern of the sail shown here are a reconstruction.",
+      "A crewman is working the rope that raises the yard."
+    ],
+    "notice": "Press Raise the sail and watch how much of the ship's power came from one sheet of wool.",
+    "extra": "sail"
+  },
+  {
+    "id": "chest",
+    "title": "Sea chests as seats",
+    "tags": [
+      "recon"
+    ],
+    "body": [
+      "No fixed rowing benches were found in the ship. Many historians think each rower sat on his own sea chest, which also held his belongings on a voyage. This is still debated. Here one crewman heaves a chest up to another at the rail."
+    ],
+    "notice": "Board the ship and look along the deck. Where would the rowers sit?"
+  },
+  {
+    "id": "game",
+    "title": "A game on the beach",
+    "tags": [
+      "found",
+      "other"
+    ],
+    "body": [
+      "A gaming board with playing pieces made of horn was buried with the ship. Board games such as <em>hnefatafl</em> pitted a king and his defenders against attackers. Two crew members pass the time while the ship is readied."
+    ],
+    "notice": "What does a game buried in a grave suggest about life after death in this culture?"
+  },
+  {
+    "id": "cook",
+    "title": "Cooking in camp",
+    "tags": [
+      "found",
+      "other"
+    ],
+    "body": [
+      "Kitchen equipment was among the grave goods. A woman stirs a pot over the fire. Her apron dress and pair of oval brooches follow what is found in women's graves across the Viking Age."
+    ],
+    "notice": "Who else, besides warriors, made a voyage possible?"
+  },
+  {
+    "id": "tent",
+    "title": "The tent",
+    "tags": [
+      "found",
+      "recon"
+    ],
+    "body": [
+      "Parts of a tent were found in the mound. A wooden frame held up a woolen cover, and the whole tent could be taken down and packed. The cloth here is our reconstruction."
+    ],
+    "notice": "Why would a ship's crew need a tent?"
+  },
+  {
+    "id": "horses",
+    "title": "Horses and dogs",
+    "tags": [
+      "found"
+    ],
+    "body": [
+      "The bones of twelve horses and several dogs were found buried with the ship, along with birds including peafowl and hawks. Animals like these showed the wealth and rank of the man buried here. In this scene they are alive, as part of his household."
+    ],
+    "notice": "Peacocks are not native to Norway. What does that tell you about Viking trade?"
+  },
+  {
+    "id": "boat",
+    "title": "The small boat",
+    "tags": [
+      "found"
+    ],
+    "body": [
+      "The mound also held the remains of three small boats. A boat like this one could ferry people and goods between the ship and the shore, or be used for fishing."
+    ],
+    "notice": "Compare this boat with the big ship. Which building method do they share?"
+  }
+]
