@@ -236,3 +236,4 @@ Status key: ✅ done, ⏳ in progress, ⬜ not started, ⚠️ needs review
 - The cook's apron dress is fitted at the top, eases in below the bust and flares to the hem. Woad blues are deeper.
 - For the horse and dog models: do not use a named breed. The dog should be a northern spitz type about 45 cm at the shoulder, greyish-brown. The horse should be about 1.3 to 1.45 m, stocky. Not a dun Fjord horse.
 - Still open: broadleaf trees (oak, birch, alder, hazel) and juniper have no free model yet. Nicolaysen records a pine landing stage, which is a source for a gangplank. It stays out until the user decides.
+- 2026-10-09, user decision: the remaining accuracy items are closed for this project. The woods stay pine only, the gangplank stays out, and the do-not-add list is unchanged.
