@@ -259,8 +259,8 @@ const ACTORS = {
   wright: { period: 0.9, build(g) { const p = new Human(outfits.wright); g.add(p.g); const handle = mesh(stickGeo(0.016), woodMat(), g), head = box(0.05, 0.05, 0.12, plain(C.iron, 0.5, 0.7), g); return { p, handle, head }; },
     frame(s, ph) {
       const up = ph < 0.6 ? Math.sin((ph / 0.6) * Math.PI / 2) : 1 - (ph - 0.6) / 0.4;
-      const hand = [lerp(0.95, 0.75, up), lerp(-2.75, -3.75, up)];
-      s.p.setPose(pose(outfits.wright, { lean: 0.12, backArm: { el: [0.45, -2.45], hand: [0.95, -2.5] }, frontArm: { el: [0.45, -2.75 - up * 0.35], hand } }));
+      const hand = [lerp(0.85, 0.62, up), lerp(-2.7, -3.35, up)];
+      s.p.setPose(pose(outfits.wright, { lean: 0.12, backArm: { el: [0.45, -2.45], hand: [0.95, -2.5] }, frontArm: { el: [0.45, -2.7 - up * 0.12], hand } }));
       const a = Math.atan2(-1, 0) + (1 - up) * 1.2 - 0.4, h = s.p.hands.front, tip = h.clone().add(new THREE.Vector3(0, -Math.sin(a) * 0.55 * CUB, Math.cos(a) * 0.55 * CUB));
       stick(s.handle, h, tip); s.head.position.copy(tip); s.head.quaternion.copy(s.handle.quaternion);
     } },
@@ -311,14 +311,14 @@ const ACTORS = {
   // a crewman on the beach heaves a sea chest up to another leaning over the rail
   chest: { period: 2.6, build(g, opts) {
       const a = new Human(outfits.chest1), b = new Human(outfits.chest2); // b turns to face a
-      a.g.position.copy(P2(1.3, 0)); b.g.position.copy(P2(3.2, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
+      a.g.position.copy(P2(1.05, 0)); b.g.position.copy(P2(3.2, 0)); b.g.position.y = opts.deckLift || 1.6; b.g.rotation.y = Math.PI; g.add(a.g, b.g);
       const chest = new THREE.Group(); box(0.5, 0.34, 0.36, mat("chestwood", () => new THREE.MeshStandardMaterial({ ...pbr("hull", { repeat: [0.4, 0.4] }), color: 0xd6a979 })), chest); box(0.08, 0.1, 0.02, plain(C.iron, 0.5, 0.7), chest).position.set(0, 0.08, 0.185);
       chest.rotation.y = Math.PI / 2; g.add(chest); return { a, b, chest }; },
     frame(s, ph) {
       const up = (1 - Math.cos(ph * TAU)) / 2, cy = lerp(-2.6, -3.7, up);
       s.a.setPose(pose(outfits.chest1, { lean: 0.1, backArm: { el: [0.35, cy + 0.5], hand: [0.75, cy + 0.15] }, frontArm: { el: [0.4, cy + 0.45], hand: [0.85, cy + 0.1] } }));
       s.b.setPose(pose(outfits.chest2, { hip: [0, -1.85], sh: [0.35, -2.85], backArm: { el: [0.75, -2.3], hand: [1.15, -1.9 + (1 - up) * 0.3] }, frontArm: { el: [0.7, -2.25], hand: [1.05, -1.85 + (1 - up) * 0.3] } }));
-      s.chest.position.copy(P2(1.3 + 1.1, cy - 0.17));
+      s.chest.position.copy(P2(2.2, cy - 0.17));
     } },
   // two players at a gaming board set on a chest
   game: { period: 3.2, build(g) {

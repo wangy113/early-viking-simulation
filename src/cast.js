@@ -9,7 +9,7 @@ const hullOut = (u, s, side, d) => { const p = H.pt(u, s, side), n = H.normal(u,
 function onGround(p) { p.y = 0; return p; }
 const cast = {};
 function addActor(name, key, _seed, pos, opts = {}) { const a = new Actor(key, opts); a.mesh.position.copy(pos); scene.add(a.mesh); cast[name] = a; return a; }
-addActor("wright", "wright", 11, onGround(hullOut(0.08, 0.46, 1, 0.5)), { face: H.pt(0.08, 0.46, 1) });
+addActor("wright", "wright", 11, onGround(hullOut(0.08, 0.46, 1, 0.82)), { face: H.pt(0.08, 0.46, 1) });
 addActor("caulk", "caulk", 12, onGround(hullOut(-0.3, 0.36, -1, 0.55)), { face: H.pt(-0.3, 0.36, -1) });
 addActor("oars", "oars", 13, v3(8, 0, 0));
 addActor("shield", "shield", 14, v3(H.hb(0.38) * H.xs(H.deckS) - 0.75, H.deckY(0.38) + 0.02, 0.38 * SHIP.Lh), { face: H.pt(0.38, 1, 1) });

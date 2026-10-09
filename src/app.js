@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { clamp, lerp } from "./util.js";
-import { renderer, scene, camera, canvas, TIER } from "./core.js";
+import { renderer, scene, camera, canvas, TIER, solids } from "./core.js";
 import { SHIP, H, rudder, sail$, placeSail } from "./ship.js";
 import { smoke, updateWorld } from "./world.js";
 import { v3, cast, fireSpot, OAR_PATH } from "./cast.js";
@@ -61,5 +61,5 @@ if (camLink) { const n = camLink[1].split(",").map(Number); if (n.length === 6) 
 if (location.hash.includes("overview")) { document.getElementById("intro").hidden = true; camera.position.set(17, 11, 17); lookAtPoint(v3(-2, 0.5, 0)); }
 if (m) { document.getElementById("intro").hidden = true; const i = clamp(parseInt(m[1], 10) - 1, 0, STOPS.length - 1); goToStop(i); if (state.flight) { camera.position.copy(state.flight.to.p); state.yaw = state.flight.to.yaw; state.pitch = state.flight.to.pitch; state.flight = null; } }
 window.__ready = true;
-if (debug) { window.__scene = scene; window.__cast = cast; }
+if (debug) { window.__scene = scene; window.__cast = cast; window.__THREE = THREE; window.__solids = solids; }
 requestAnimationFrame(frame);

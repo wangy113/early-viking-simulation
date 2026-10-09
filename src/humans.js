@@ -91,7 +91,6 @@ function fittings(model, o) {
 // The pose data comes from the proof of concept: points in cubits, x forward, y up negative,
 // for a figure with these proportions. Each figure scales it to its own body.
 const UA = 0.6 * CUB, FA = 0.55 * CUB, TH = 0.9 * CUB, SH = 0.86 * CUB, HIP_Y = 1.85 * CUB;
-const ARM_POSE = UA + FA;
 const v = new THREE.Vector3(), w = new THREE.Vector3(), q = new THREE.Quaternion(), q2 = new THREE.Quaternion();
 const ID = new THREE.Quaternion();
 
@@ -126,7 +125,7 @@ class Human {
     if (!src) throw new Error(`Body ${o.body} was not preloaded`);
     this.o = o; this.g = new THREE.Group();
     this.model = cloneSkinned(src); this.g.add(this.model);
-    this.g.userData.isHuman = true;
+    this.g.userData.isHuman = true; this.g.userData.human = this;
     const info = JSON.parse(this.model.getObjectByName("rig")?.userData?.mh || "{}");
     // materials by part name
     const looks = {
@@ -156,9 +155,9 @@ class Human {
     this.k = this.hipY / HIP_Y;
     this.arm = { l1: wp("upperarm_l").distanceTo(wp("lowerarm_l")), l2: wp("lowerarm_l").distanceTo(wp("hand_l")) };
     this.leg = { l1: wp("thigh_l").distanceTo(wp("calf_l")), l2: wp("calf_l").distanceTo(wp("foot_l")) };
-    this.armScale = (this.arm.l1 + this.arm.l2) / ARM_POSE;
     this.shoulderY = wp("upperarm_l").y + 0.075; // top of the shoulder, where a carried oar rests
     this.grip();
+    this.gripOff = this.gripPoint("l", new THREE.Vector3()).distanceTo(wp("hand_l"));
     this.footRest = {};
     for (const s of ["l", "r"]) this.footRest[s] = this.b[`foot_${s}`].getWorldQuaternion(new THREE.Quaternion());
     this.hands = { back: new THREE.Vector3(), front: new THREE.Vector3() };
@@ -187,6 +186,13 @@ class Human {
     }
     for (const n of Object.values(this.b)) if (/^(index|middle|ring|pinky|thumb)/.test(n.name)) this.rest.get(n).q.copy(n.quaternion);
   }
+  // the middle of the closed fist, in world space
+  gripPoint(s, out) {
+    const b = this.b, t = new THREE.Vector3();
+    out.set(0, 0, 0);
+    for (const n of [`middle_02_${s}`, `index_02_${s}`, `thumb_03_${s}`, `middle_01_${s}`]) out.add(b[n].getWorldPosition(t));
+    return out.multiplyScalar(0.25);
+  }
   // a pose point in cubits to this figure's local frame, scaled to its body
   v(p, lat = 0, out = new THREE.Vector3()) { return out.set(lat, -p[1] * CUB * this.k, this.mirror * p[0] * CUB * this.k); }
   setPose(pd) {
@@ -214,22 +220,23 @@ class Human {
     turnWorld(b.neck_01, ID.clone().slerp(bend.clone().invert(), 0.45));
     turnWorld(b.head, q.setFromAxisAngle(dirWorld(v.set(1, 0, 0)), (pd.headY || 0) * 4 + (pd.headX || 0) * -2));
 
-    // arms: rebuild the proof of concept's elbow and wrist, then reach with this body's arm lengths
+    // arms: the hands go exactly where the proof of concept put its hands, because the tools,
+    // the oar, the shield and the chest are placed from those points. The elbow bends toward
+    // the proof of concept's elbow.
+    const u = (p, lat) => new THREE.Vector3(lat, -p[1] * CUB, this.mirror * p[0] * CUB); // unscaled
     for (const [side, s, lat] of [["back", "r", -0.205], ["front", "l", 0.205]]) {
       const arm = pd[`${side}Arm`];
-      const sh0 = this.v(pd.sh, lat).add(v.set(0, -0.04 * this.k, 0));
-      const el0 = this.v(arm.el, lat), hd0 = this.v(arm.hand, lat);
-      const elbow = sh0.clone().add(el0.sub(sh0).normalize().multiplyScalar(UA * this.k));
-      const wrist = elbow.clone().add(hd0.sub(elbow).normalize().multiplyScalar(FA * this.k));
+      const sh0 = u(pd.sh, lat).add(v.set(0, -0.04, 0));
+      const elbow = sh0.clone().add(u(arm.el, lat).sub(sh0).normalize().multiplyScalar(UA));
+      const fdir = u(arm.hand, lat).sub(elbow).normalize();
+      const handPt = elbow.clone().addScaledVector(fdir, FA + 0.045);
       const ua = b[`upperarm_${s}`], fa = b[`lowerarm_${s}`], hand = b[`hand_${s}`];
       const A = ua.getWorldPosition(new THREE.Vector3());
-      const sc = this.armScale / this.k;
-      const T = A.clone().add(dirWorld(wrist.clone().sub(sh0).multiplyScalar(sc)));
-      const P = A.clone().add(dirWorld(elbow.clone().sub(sh0).multiplyScalar(sc)));
-      const E = solveJoint(A, T, this.arm.l1, this.arm.l2, P);
+      // aim the wrist short of the hand point, so the middle of the fist lands on it
+      const T = toWorld(handPt.clone().addScaledVector(fdir, -this.gripOff));
+      const E = solveJoint(A, T, this.arm.l1, this.arm.l2, toWorld(elbow));
       aimAt(ua, fa, E); aimAt(fa, hand, T);
-      const end = hand.getWorldPosition(new THREE.Vector3()), dir = end.clone().sub(fa.getWorldPosition(w)).normalize();
-      g.worldToLocal(this.hands[side].copy(end).addScaledVector(dir, 0.07));
+      g.worldToLocal(this.gripPoint(s, this.hands[side]));
     }
 
     // legs: feet go where the pose puts them, knees bend toward the pose's knees

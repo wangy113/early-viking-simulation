@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { clamp, lerp, reduceMotion } from "./util.js";
 import { canvas, camera, solids } from "./core.js";
 import { SHIP, H } from "./ship.js";
-import { ground, grass } from "./world.js";
+import { ground, grass, groundY } from "./world.js";
 import { v3 } from "./cast.js";
 
 // ---------------- camera, movement ----------------
@@ -17,7 +17,8 @@ function deckBounds(p) { const u = p.z / SHIP.Lh; if (Math.abs(u) > 0.8) return 
 function insideHull(p, pad = 0.6) { const u = p.z / SHIP.Lh; if (Math.abs(u) > 1.08) return false; return Math.abs(p.x) < H.hb(clamp(u, -1, 1)) + pad; }
 function groundHeight(p) {
   if (state.onBoard) { const b = deckBounds(p); return b ? H.deckY(b.u) + 1.65 : 1.65; }
-  return 1.65;
+  // ashore the eyes follow the land, which rises inland toward the woods
+  return Math.max(0, groundY(p.x, p.z)) + 1.65;
 }
 function constrain(p, prev) {
   if (state.onBoard) {
@@ -25,6 +26,8 @@ function constrain(p, prev) {
     const b = deckBounds(p); p.x = clamp(p.x, -b.w, b.w);
   } else if (insideHull(p)) { p.x = prev.x; p.z = prev.z; if (insideHull(p)) p.x += Math.sign(p.x || 1) * 0.2; }
   if (p.z < -16) p.z = -16;
+  // stay out of the woods and on the mapped land
+  p.z = Math.min(p.z, 74); p.x = clamp(p.x, -150, 150);
   p.y = groundHeight(p);
 }
 
